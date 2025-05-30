@@ -1,32 +1,32 @@
-"use client"
+"use client";
 
-import { useState, useEffect } from "react"
-import Link from "next/link"
-import { comicService } from "@/lib/api"
-import { Card, CardContent } from "@/components/ui/card"
-import { Skeleton } from "@/components/ui/skeleton"
+import { useState, useEffect } from "react";
+import Link from "next/link";
+import { comicService } from "@/lib/api";
+import { Card, CardContent } from "@/components/ui/card";
+import { Skeleton } from "@/components/ui/skeleton";
 
 export default function GenresPage() {
-  const [genres, setGenres] = useState<string[]>([])
-  const [isLoading, setIsLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
+  const [genres, setGenres] = useState<string[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchGenres = async () => {
       try {
-        const genreList = await comicService.getGenres()
-        setGenres(genreList)
-        setError(null)
+        const genreList = await comicService.getGenres();
+        setGenres(genreList);
+        setError(null);
       } catch (err) {
-        console.error("Error fetching genres:", err)
-        setError("Failed to load genres. Please try again later.")
+        console.error("Error fetching genres:", err);
+        setError("Failed to load genres. Please try again later.");
       } finally {
-        setIsLoading(false)
+        setIsLoading(false);
       }
-    }
+    };
 
-    fetchGenres()
-  }, [])
+    fetchGenres();
+  }, []);
 
   return (
     <main className="container mx-auto px-4 py-8">
@@ -58,5 +58,5 @@ export default function GenresPage() {
         </div>
       )}
     </main>
-  )
+  );
 }

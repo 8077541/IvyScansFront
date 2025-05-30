@@ -1,37 +1,44 @@
-"use client"
+"use client";
 
-import { useState, useEffect } from "react"
-import Link from "next/link"
-import { Bell } from "lucide-react"
-import { Button } from "@/components/ui/button"
-import { Badge } from "@/components/ui/badge"
+import { useState, useEffect } from "react";
+import Link from "next/link";
+import { Bell } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
-import { Skeleton } from "@/components/ui/skeleton"
-import { useNotifications } from "@/contexts/notification-context"
-import { formatDateTime } from "@/lib/date-utils"
+} from "@/components/ui/dropdown-menu";
+import { Skeleton } from "@/components/ui/skeleton";
+import { useNotifications } from "@/contexts/notification-context";
+import { formatDateTime } from "@/lib/date-utils";
 
 export function NotificationDropdown() {
-  const { notifications, unreadCount, loading, error, markAsRead, markAllAsRead, fetchNotifications } =
-    useNotifications()
-  const [isOpen, setIsOpen] = useState(false)
+  const {
+    notifications,
+    unreadCount,
+    loading,
+    error,
+    markAsRead,
+    markAllAsRead,
+    fetchNotifications,
+  } = useNotifications();
+  const [isOpen, setIsOpen] = useState(false);
 
   // Refresh notifications when dropdown opens
   useEffect(() => {
     if (isOpen) {
-      fetchNotifications()
+      fetchNotifications();
     }
-  }, [isOpen, fetchNotifications])
+  }, [isOpen, fetchNotifications]);
 
   // Mark notification as read when clicked
   const handleNotificationClick = async (id: string) => {
-    await markAsRead(id)
-  }
+    await markAsRead(id);
+  };
 
   return (
     <DropdownMenu onOpenChange={setIsOpen}>
@@ -50,7 +57,10 @@ export function NotificationDropdown() {
         <div className="flex items-center justify-between p-4">
           <p className="font-medium">Notifications</p>
           {unreadCount > 0 && (
-            <Badge variant="outline" className="bg-green-500/10 text-green-500 border-green-500/50">
+            <Badge
+              variant="outline"
+              className="bg-green-500/10 text-green-500 border-green-500/50"
+            >
               {unreadCount} New
             </Badge>
           )}
@@ -74,20 +84,32 @@ export function NotificationDropdown() {
           ) : error ? (
             <div className="p-4 text-center text-sm text-red-500">{error}</div>
           ) : notifications.length === 0 ? (
-            <div className="p-4 text-center text-sm text-muted-foreground">No notifications yet</div>
+            <div className="p-4 text-center text-sm text-muted-foreground">
+              No notifications yet
+            </div>
           ) : (
             notifications.map((notification) => (
               <DropdownMenuItem
                 key={notification.id}
-                className={`p-3 cursor-pointer ${!notification.read ? "bg-green-500/5" : ""}`}
+                className={`p-3 cursor-pointer ${
+                  !notification.read ? "bg-green-500/5" : ""
+                }`}
                 onClick={() => handleNotificationClick(notification.id)}
               >
                 <div className="w-full">
                   <div className="flex justify-between items-start mb-1">
-                    <p className={`text-sm font-medium ${!notification.read ? "text-green-500" : ""}`}>
-                      {notification.type === "NEW_CHAPTER" ? "New Chapter" : "System Message"}
+                    <p
+                      className={`text-sm font-medium ${
+                        !notification.read ? "text-green-500" : ""
+                      }`}
+                    >
+                      {notification.type === "NEW_CHAPTER"
+                        ? "New Chapter"
+                        : "System Message"}
                     </p>
-                    <span className="text-xs text-muted-foreground">{formatDateTime(notification.createdAt)}</span>
+                    <span className="text-xs text-muted-foreground">
+                      {formatDateTime(notification.createdAt)}
+                    </span>
                   </div>
                   <p className="text-sm">{notification.message}</p>
                   {notification.type === "NEW_CHAPTER" && notification.data && (
@@ -105,7 +127,12 @@ export function NotificationDropdown() {
         </div>
         <DropdownMenuSeparator />
         <div className="p-2 flex justify-between">
-          <Button variant="outline" size="sm" onClick={markAllAsRead} disabled={unreadCount === 0}>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={markAllAsRead}
+            disabled={unreadCount === 0}
+          >
             Mark all as read
           </Button>
           <Button variant="outline" size="sm" asChild>
@@ -114,5 +141,5 @@ export function NotificationDropdown() {
         </div>
       </DropdownMenuContent>
     </DropdownMenu>
-  )
+  );
 }

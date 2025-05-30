@@ -1,30 +1,38 @@
-"use client"
+"use client";
 
-import { createContext, useContext, useState, useEffect, type ReactNode } from "react"
-import { useAuth } from "@/contexts/auth-context"
-import { API_BASE_URL, USE_MOCK_API } from "@/lib/config"
+import {
+  createContext,
+  useContext,
+  useState,
+  useEffect,
+  type ReactNode,
+} from "react";
+import { useAuth } from "@/contexts/auth-context";
+import { API_BASE_URL, USE_MOCK_API } from "@/lib/config";
 
 export interface Notification {
-  id: string
-  userId: string
-  type: string
-  message: string
-  read: boolean
-  data?: any
-  createdAt: string
+  id: string;
+  userId: string;
+  type: string;
+  message: string;
+  read: boolean;
+  data?: any;
+  createdAt: string;
 }
 
 interface NotificationContextType {
-  notifications: Notification[]
-  unreadCount: number
-  loading: boolean
-  error: string | null
-  markAsRead: (id: string) => Promise<void>
-  markAllAsRead: () => Promise<void>
-  fetchNotifications: () => Promise<void>
+  notifications: Notification[];
+  unreadCount: number;
+  loading: boolean;
+  error: string | null;
+  markAsRead: (id: string) => Promise<void>;
+  markAllAsRead: () => Promise<void>;
+  fetchNotifications: () => Promise<void>;
 }
 
-const NotificationContext = createContext<NotificationContextType | undefined>(undefined)
+const NotificationContext = createContext<NotificationContextType | undefined>(
+  undefined
+);
 
 // Mock notifications for development
 const mockNotifications: Notification[] = [
@@ -54,150 +62,173 @@ const mockNotifications: Notification[] = [
     read: true,
     createdAt: new Date(Date.now() - 172800000).toISOString(), // 2 days ago
   },
-]
+];
 
 export function NotificationProvider({ children }: { children: ReactNode }) {
-  const [notifications, setNotifications] = useState<Notification[]>([])
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
-  const { isAuthenticated, user } = useAuth()
+  const [notifications, setNotifications] = useState<Notification[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const { isAuthenticated, user } = useAuth();
 
   const fetchNotifications = async () => {
     if (!isAuthenticated) {
-      setNotifications([])
-      setLoading(false)
-      return
+      setNotifications([]);
+      setLoading(false);
+      return;
     }
 
-    setLoading(true)
-    setError(null)
+    setLoading(true);
+    setError(null);
 
     try {
       if (USE_MOCK_API) {
         // Simulate API delay
-        await new Promise((resolve) => setTimeout(resolve, 500))
-        setNotifications(mockNotifications)
+        await new Promise((resolve) => setTimeout(resolve, 500));
+        setNotifications(mockNotifications);
       } else {
         const response = await fetch(`${API_BASE_URL}/user/notifications`, {
           headers: {
             Authorization: `Bearer ${localStorage.getItem("token")}`,
           },
-        })
+        });
 
         if (!response.ok) {
-          throw new Error("Failed to fetch notifications")
+          throw new Error("Failed to fetch notifications");
         }
 
-        const data = await response.json()
-        setNotifications(data)
+        const data = await response.json();
+        setNotifications(data);
       }
     } catch (err) {
-      console.error("Error fetching notifications:", err)
-      setError("Failed to load notifications")
+      console.error("Error fetching notifications:", err);
+      setError("Failed to load notifications");
       // Fall back to mock data in case of error
       if (USE_MOCK_API) {
-        setNotifications(mockNotifications)
+        setNotifications(mockNotifications);
       }
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }
+  };
 
   const markAsRead = async (id: string) => {
-    if (!isAuthenticated) return
+    if (!isAuthenticated) return;
 
     try {
       if (USE_MOCK_API) {
         // Update local state for mock data
         setNotifications((prev) =>
-          prev.map((notification) => (notification.id === id ? { ...notification, read: true } : notification)),
-        )
+          prev.map((notification) =>
+            notification.id === id
+              ? { ...notification, read: true }
+              : notification
+          )
+        );
       } else {
-        const response = await fetch(`${API_BASE_URL}/user/notifications/${id}/read`, {
-          method: "PUT",
-          headers: {
-            Authorization: `Bearer ${localStorage.getItem("token")}`,
-            "Content-Type": "application/json",
-          },
-        })
+        const response = await fetch(
+          `${API_BASE_URL}/user/notifications/${id}/read`,
+          {
+            method: "PUT",
+            headers: {
+              Authorization: `Bearer ${localStorage.getItem("token")}`,
+              "Content-Type": "application/json",
+            },
+          }
+        );
 
         if (!response.ok) {
-          throw new Error("Failed to mark notification as read")
+          throw new Error("Failed to mark notification as read");
         }
 
         // Update local state after successful API call
         setNotifications((prev) =>
-          prev.map((notification) => (notification.id === id ? { ...notification, read: true } : notification)),
-        )
+          prev.map((notification) =>
+            notification.id === id
+              ? { ...notification, read: true }
+              : notification
+          )
+        );
       }
     } catch (err) {
-      console.error("Error marking notification as read:", err)
+      console.error("Error marking notification as read:", err);
       // If using mock data, still update the UI
       if (USE_MOCK_API) {
         setNotifications((prev) =>
-          prev.map((notification) => (notification.id === id ? { ...notification, read: true } : notification)),
-        )
+          prev.map((notification) =>
+            notification.id === id
+              ? { ...notification, read: true }
+              : notification
+          )
+        );
       }
     }
-  }
+  };
 
   const markAllAsRead = async () => {
-    if (!isAuthenticated) return
+    if (!isAuthenticated) return;
 
     try {
       if (USE_MOCK_API) {
         // Update local state for mock data
-        setNotifications((prev) => prev.map((notification) => ({ ...notification, read: true })))
+        setNotifications((prev) =>
+          prev.map((notification) => ({ ...notification, read: true }))
+        );
       } else {
-        const response = await fetch(`${API_BASE_URL}/user/notifications/read-all`, {
-          method: "PUT",
-          headers: {
-            Authorization: `Bearer ${localStorage.getItem("token")}`,
-            "Content-Type": "application/json",
-          },
-        })
+        const response = await fetch(
+          `${API_BASE_URL}/user/notifications/read-all`,
+          {
+            method: "PUT",
+            headers: {
+              Authorization: `Bearer ${localStorage.getItem("token")}`,
+              "Content-Type": "application/json",
+            },
+          }
+        );
 
         if (!response.ok) {
-          throw new Error("Failed to mark all notifications as read")
+          throw new Error("Failed to mark all notifications as read");
         }
 
         // Update local state after successful API call
-        setNotifications((prev) => prev.map((notification) => ({ ...notification, read: true })))
+        setNotifications((prev) =>
+          prev.map((notification) => ({ ...notification, read: true }))
+        );
       }
     } catch (err) {
-      console.error("Error marking all notifications as read:", err)
+      console.error("Error marking all notifications as read:", err);
       // If using mock data, still update the UI
       if (USE_MOCK_API) {
-        setNotifications((prev) => prev.map((notification) => ({ ...notification, read: true })))
+        setNotifications((prev) =>
+          prev.map((notification) => ({ ...notification, read: true }))
+        );
       }
     }
-  }
+  };
 
   // Fetch notifications on mount and when auth state changes
   useEffect(() => {
     if (isAuthenticated) {
-      fetchNotifications()
+      fetchNotifications();
     } else {
-      setNotifications([])
-      setLoading(false)
+      setNotifications([]);
+      setLoading(false);
     }
-  }, [isAuthenticated])
+  }, [isAuthenticated]);
 
   // Set up polling for new notifications (every 5 minutes)
   useEffect(() => {
-    if (!isAuthenticated) return
+    if (!isAuthenticated) return;
 
-    const intervalId = setInterval(
-      () => {
-        fetchNotifications()
-      },
-      5 * 60 * 1000,
-    )
+    const intervalId = setInterval(() => {
+      fetchNotifications();
+    }, 5 * 60 * 1000);
 
-    return () => clearInterval(intervalId)
-  }, [isAuthenticated])
+    return () => clearInterval(intervalId);
+  }, [isAuthenticated]);
 
-  const unreadCount = notifications.filter((notification) => !notification.read).length
+  const unreadCount = notifications.filter(
+    (notification) => !notification.read
+  ).length;
 
   return (
     <NotificationContext.Provider
@@ -213,13 +244,15 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
     >
       {children}
     </NotificationContext.Provider>
-  )
+  );
 }
 
 export function useNotifications() {
-  const context = useContext(NotificationContext)
+  const context = useContext(NotificationContext);
   if (context === undefined) {
-    throw new Error("useNotifications must be used within a NotificationProvider")
+    throw new Error(
+      "useNotifications must be used within a NotificationProvider"
+    );
   }
-  return context
+  return context;
 }

@@ -1,12 +1,12 @@
-"use client"
+"use client";
 
-import { useState, useEffect } from "react"
-import { Star, StarHalf, Loader2 } from "lucide-react"
-import { Button } from "@/components/ui/button"
-import { Textarea } from "@/components/ui/textarea"
-import { useToast } from "@/components/ui/use-toast"
-import { useAuth } from "@/contexts/auth-context"
-import { userService } from "@/lib/api"
+import { useState, useEffect } from "react";
+import { Star, StarHalf, Loader2 } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Textarea } from "@/components/ui/textarea";
+import { useToast } from "@/components/ui/use-toast";
+import { useAuth } from "@/contexts/auth-context";
+import { userService } from "@/lib/api";
 import {
   Dialog,
   DialogContent,
@@ -14,65 +14,70 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from "@/components/ui/dialog"
-import { Card, CardContent } from "@/components/ui/card"
-import { formatDate } from "@/lib/date-utils"
+} from "@/components/ui/dialog";
+import { Card, CardContent } from "@/components/ui/card";
+import { formatDate } from "@/lib/date-utils";
 
 interface RatingControlProps {
-  comicId: string
-  comicTitle: string
+  comicId: string;
+  comicTitle: string;
 }
 
 export function RatingControl({ comicId, comicTitle }: RatingControlProps) {
-  const [userRating, setUserRating] = useState<number | null>(null)
-  const [userComment, setUserComment] = useState<string>("")
-  const [isLoading, setIsLoading] = useState(true)
-  const [isSubmitting, setIsSubmitting] = useState(false)
-  const [isDialogOpen, setIsDialogOpen] = useState(false)
-  const [tempRating, setTempRating] = useState<number>(0)
-  const [tempComment, setTempComment] = useState<string>("")
-  const [hoverRating, setHoverRating] = useState<number | null>(null)
-  const [dateRated, setDateRated] = useState<string>("")
-  const { isAuthenticated } = useAuth()
-  const { toast } = useToast()
+  const [userRating, setUserRating] = useState<number | null>(null);
+  const [userComment, setUserComment] = useState<string>("");
+  const [isLoading, setIsLoading] = useState(true);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [tempRating, setTempRating] = useState<number>(0);
+  const [tempComment, setTempComment] = useState<string>("");
+  const [hoverRating, setHoverRating] = useState<number | null>(null);
+  const [dateRated, setDateRated] = useState<string>("");
+  const { isAuthenticated } = useAuth();
+  const { toast } = useToast();
 
   // Fetch user's rating for this comic
   useEffect(() => {
     const fetchUserRating = async () => {
       if (!isAuthenticated) {
-        setIsLoading(false)
-        return
+        setIsLoading(false);
+        return;
       }
 
       try {
-        console.log(`[RatingControl] Fetching rating for comic: ${comicId}`)
-        const ratings = await userService.getRatings()
+        console.log(`[RatingControl] Fetching rating for comic: ${comicId}`);
+        const ratings = await userService.getRatings();
 
         // Log all ratings to help debug
-        console.log(`[RatingControl] All user ratings:`, ratings)
+        console.log(`[RatingControl] All user ratings:`, ratings);
 
         // Use both id and comicId for matching to be more robust
         const userRating = ratings.find(
-          (rating) => rating.id === comicId || (rating.comicId && rating.comicId === comicId),
-        )
+          (rating) =>
+            rating.id === comicId ||
+            (rating.comicId && rating.comicId === comicId)
+        );
 
         if (userRating) {
-          console.log(`[RatingControl] Found rating for comic ${comicId}:`, userRating)
-          setUserRating(userRating.rating)
-          setUserComment(userRating.comment || "")
-          setDateRated(userRating.dateRated || "")
+          console.log(
+            `[RatingControl] Found rating for comic ${comicId}:`,
+            userRating
+          );
+          setUserRating(userRating.rating);
+          setUserComment(userRating.comment || "");
+          setDateRated(userRating.dateRated || "");
         } else {
-          console.log(`[RatingControl] No rating found for comic ${comicId}`)
+          console.log(`[RatingControl] No rating found for comic ${comicId}`);
         }
       } catch (error) {
-        console.error("Error fetching user rating:", error)
+        console.error("Error fetching user rating:", error);
       } finally {
-        setIsLoading(false)
+        setIsLoading(false);
       }
-    }
+    };
 
-    fetchUserRating()
-  }, [comicId, isAuthenticated])
+    fetchUserRating();
+  }, [comicId, isAuthenticated]);
 
   const handleOpenDialog = () => {
     if (!isAuthenticated) {
@@ -80,73 +85,86 @@ export function RatingControl({ comicId, comicTitle }: RatingControlProps) {
         title: "Authentication Required",
         description: "Please sign in to rate comics",
         variant: "destructive",
-      })
-      return
+      });
+      return;
     }
 
-    setTempRating(userRating || 0)
-    setTempComment(userComment || "")
-    setIsDialogOpen(true)
-  }
+    setTempRating(userRating || 0);
+    setTempComment(userComment || "");
+    setIsDialogOpen(true);
+  };
 
   const handleSubmitRating = async () => {
-    if (!isAuthenticated) return
+    if (!isAuthenticated) return;
 
-    setIsSubmitting(true)
+    setIsSubmitting(true);
 
     try {
       if (tempRating === 0) {
         // Delete rating if set to 0
-        await userService.deleteRating(comicId)
-        setUserRating(null)
-        setUserComment("")
-        setDateRated("")
+        await userService.deleteRating(comicId);
+        setUserRating(null);
+        setUserComment("");
+        setDateRated("");
         toast({
           title: "Rating Removed",
           description: "Your rating has been removed",
-        })
+        });
       } else {
         // Add or update rating
-        await userService.rateComic(comicId, tempRating, tempComment)
-        setUserRating(tempRating)
-        setUserComment(tempComment)
-        setDateRated(new Date().toISOString())
+        await userService.rateComic(comicId, tempRating, tempComment);
+        setUserRating(tempRating);
+        setUserComment(tempComment);
+        setDateRated(new Date().toISOString());
         toast({
           title: "Rating Saved",
           description: "Your rating has been saved",
-        })
+        });
       }
-      setIsDialogOpen(false)
+      setIsDialogOpen(false);
     } catch (error) {
-      console.error("Error submitting rating:", error)
+      console.error("Error submitting rating:", error);
       toast({
         title: "Error",
         description: "Failed to save rating. Please try again.",
         variant: "destructive",
-      })
+      });
     } finally {
-      setIsSubmitting(false)
+      setIsSubmitting(false);
     }
-  }
+  };
 
   const renderStars = (rating: number | null) => {
     return (
       <div className="flex">
         {[1, 2, 3, 4, 5].map((star) => {
-          const filled = rating && star <= Math.floor(rating)
-          const halfFilled = rating && star === Math.ceil(rating) && rating % 1 !== 0
+          const filled = rating && star <= Math.floor(rating);
+          const halfFilled =
+            rating && star === Math.ceil(rating) && rating % 1 !== 0;
 
           if (filled) {
-            return <Star key={star} className="h-5 w-5 fill-yellow-400 text-yellow-400" />
+            return (
+              <Star
+                key={star}
+                className="h-5 w-5 fill-yellow-400 text-yellow-400"
+              />
+            );
           } else if (halfFilled) {
-            return <StarHalf key={star} className="h-5 w-5 fill-yellow-400 text-yellow-400" />
+            return (
+              <StarHalf
+                key={star}
+                className="h-5 w-5 fill-yellow-400 text-yellow-400"
+              />
+            );
           } else {
-            return <Star key={star} className="h-5 w-5 text-muted-foreground" />
+            return (
+              <Star key={star} className="h-5 w-5 text-muted-foreground" />
+            );
           }
         })}
       </div>
-    )
-  }
+    );
+  };
 
   if (isLoading) {
     return (
@@ -154,7 +172,7 @@ export function RatingControl({ comicId, comicTitle }: RatingControlProps) {
         <Loader2 className="h-4 w-4 animate-spin" />
         <span className="text-sm">Loading rating...</span>
       </div>
-    )
+    );
   }
 
   return (
@@ -180,7 +198,11 @@ export function RatingControl({ comicId, comicTitle }: RatingControlProps) {
           <CardContent className="p-4">
             <div className="flex justify-between items-center mb-2">
               <h4 className="text-sm font-medium">Your Rating</h4>
-              {dateRated && <span className="text-xs text-muted-foreground">Rated on: {formatDate(dateRated)}</span>}
+              {dateRated && (
+                <span className="text-xs text-muted-foreground">
+                  Rated on: {formatDate(dateRated)}
+                </span>
+              )}
             </div>
             {userComment ? (
               <p className="text-sm">{userComment}</p>
@@ -197,7 +219,9 @@ export function RatingControl({ comicId, comicTitle }: RatingControlProps) {
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Rate {comicTitle}</DialogTitle>
-            <DialogDescription>Share your rating and comment for this comic</DialogDescription>
+            <DialogDescription>
+              Share your rating and comment for this comic
+            </DialogDescription>
           </DialogHeader>
 
           <div className="space-y-4 py-4">
@@ -208,7 +232,11 @@ export function RatingControl({ comicId, comicTitle }: RatingControlProps) {
                   <Star
                     key={star}
                     className={`h-6 w-6 cursor-pointer ${
-                      (hoverRating !== null ? star <= hoverRating : star <= tempRating)
+                      (
+                        hoverRating !== null
+                          ? star <= hoverRating
+                          : star <= tempRating
+                      )
                         ? "fill-yellow-400 text-yellow-400"
                         : "text-muted-foreground"
                     }`}
@@ -217,12 +245,16 @@ export function RatingControl({ comicId, comicTitle }: RatingControlProps) {
                     onMouseLeave={() => setHoverRating(null)}
                   />
                 ))}
-                <span className="ml-2 text-sm">{tempRating.toFixed(1)}/5.0</span>
+                <span className="ml-2 text-sm">
+                  {tempRating.toFixed(1)}/5.0
+                </span>
               </div>
             </div>
 
             <div className="space-y-2">
-              <label className="text-sm font-medium">Your Comment (Optional)</label>
+              <label className="text-sm font-medium">
+                Your Comment (Optional)
+              </label>
               <Textarea
                 value={tempComment}
                 onChange={(e) => setTempComment(e.target.value)}
@@ -233,10 +265,18 @@ export function RatingControl({ comicId, comicTitle }: RatingControlProps) {
           </div>
 
           <DialogFooter>
-            <Button variant="outline" onClick={() => setIsDialogOpen(false)} disabled={isSubmitting}>
+            <Button
+              variant="outline"
+              onClick={() => setIsDialogOpen(false)}
+              disabled={isSubmitting}
+            >
               Cancel
             </Button>
-            <Button className="bg-green-400 hover:bg-green-500" onClick={handleSubmitRating} disabled={isSubmitting}>
+            <Button
+              className="bg-green-400 hover:bg-green-500"
+              onClick={handleSubmitRating}
+              disabled={isSubmitting}
+            >
               {isSubmitting ? (
                 <>
                   <Loader2 className="h-4 w-4 mr-2 animate-spin" />
@@ -250,5 +290,5 @@ export function RatingControl({ comicId, comicTitle }: RatingControlProps) {
         </DialogContent>
       </Dialog>
     </div>
-  )
+  );
 }

@@ -5,7 +5,7 @@
   "start_url": "/",
   "display": "standalone",
   "background_color": "#000000",
-  "theme_color": "#22c55e",
+  "theme_color": "#000000",
   "orientation": "portrait-primary",
   "icons": [
     {
@@ -19,21 +19,14 @@
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "maskable any"
+    },
+    {
+      "src": "/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml"
     }
   ],
   "categories": ["entertainment", "books"],
-  "screenshots": [
-    {
-      "src": "/screenshot-wide.jpg",
-      "sizes": "1280x720",
-      "type": "image/jpeg",
-      "form_factor": "wide"
-    },
-    {
-      "src": "/screenshot-narrow.jpg",
-      "sizes": "750x1334",
-      "type": "image/jpeg",
-      "form_factor": "narrow"
-    }
-  ]
+  "lang": "en",
+  "dir": "ltr"
 }

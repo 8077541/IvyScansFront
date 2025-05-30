@@ -1,108 +1,134 @@
-"use client"
+"use client";
 
-import type React from "react"
-import { useState, useEffect } from "react"
-import Link from "next/link"
-import { Mail, Lock, User, ArrowRight, AlertCircle } from "lucide-react"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
-import { Checkbox } from "@/components/ui/checkbox"
-import { Logo } from "@/components/logo"
-import { useAuth } from "@/contexts/auth-context"
-import { Alert, AlertDescription } from "@/components/ui/alert"
+import type React from "react";
+import { useState, useEffect } from "react";
+import Link from "next/link";
+import { Mail, Lock, User, ArrowRight, AlertCircle } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Logo } from "@/components/logo";
+import { useAuth } from "@/contexts/auth-context";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 export default function AuthPage() {
-  const [mounted, setMounted] = useState(false)
-  const [isLoading, setIsLoading] = useState(false)
-  const [formError, setFormError] = useState<string | null>(null)
-  const [callbackUrl, setCallbackUrl] = useState("/")
+  const [mounted, setMounted] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [formError, setFormError] = useState<string | null>(null);
+  const [callbackUrl, setCallbackUrl] = useState("/");
 
   // Get auth context
-  const { login, register, error, clearError, isAuthenticated, isLoading: authLoading } = useAuth()
+  const {
+    login,
+    register,
+    error,
+    clearError,
+    isAuthenticated,
+    isLoading: authLoading,
+  } = useAuth();
 
   // Form state
-  const [loginData, setLoginData] = useState({ email: "", password: "" })
+  const [loginData, setLoginData] = useState({ email: "", password: "" });
   const [registerData, setRegisterData] = useState({
     username: "",
     email: "",
     password: "",
     confirmPassword: "",
-  })
+  });
 
   useEffect(() => {
-    setMounted(true)
+    setMounted(true);
 
     // Get callback URL from query params
     if (typeof window !== "undefined") {
-      const params = new URLSearchParams(window.location.search)
-      const callback = params.get("callbackUrl") || "/"
-      setCallbackUrl(callback)
+      const params = new URLSearchParams(window.location.search);
+      const callback = params.get("callbackUrl") || "/";
+      setCallbackUrl(callback);
     }
 
     // If user is already authenticated, redirect to callback URL or homepage
     if (isAuthenticated && !authLoading) {
-      console.log("[Auth Page] User is authenticated, redirecting to:", callbackUrl)
-      window.location.href = callbackUrl
+      console.log(
+        "[Auth Page] User is authenticated, redirecting to:",
+        callbackUrl
+      );
+      window.location.href = callbackUrl;
     }
-  }, [isAuthenticated, authLoading, callbackUrl])
+  }, [isAuthenticated, authLoading, callbackUrl]);
 
   const handleSignIn = async (e: React.FormEvent) => {
-    e.preventDefault()
-    if (!mounted) return
+    e.preventDefault();
+    if (!mounted) return;
 
-    setIsLoading(true)
-    setFormError(null)
-    clearError()
+    setIsLoading(true);
+    setFormError(null);
+    clearError();
 
     try {
-      await login(loginData.email, loginData.password)
-      console.log("[Auth Page] Login successful, redirecting to:", callbackUrl)
+      await login(loginData.email, loginData.password);
+      console.log("[Auth Page] Login successful, redirecting to:", callbackUrl);
       // Force navigation to callback URL or homepage
-      window.location.href = callbackUrl
+      window.location.href = callbackUrl;
     } catch (err) {
-      setFormError(err instanceof Error ? err.message : "Failed to sign in")
+      setFormError(err instanceof Error ? err.message : "Failed to sign in");
     } finally {
-      setIsLoading(false)
+      setIsLoading(false);
     }
-  }
+  };
 
   const handleRegister = async (e: React.FormEvent) => {
-    e.preventDefault()
-    if (!mounted) return
+    e.preventDefault();
+    if (!mounted) return;
 
-    setIsLoading(true)
-    setFormError(null)
-    clearError()
+    setIsLoading(true);
+    setFormError(null);
+    clearError();
 
     // Check if passwords match
     if (registerData.password !== registerData.confirmPassword) {
-      setFormError("Passwords do not match")
-      setIsLoading(false)
-      return
+      setFormError("Passwords do not match");
+      setIsLoading(false);
+      return;
     }
 
     // Check password length
     if (registerData.password.length < 8) {
-      setFormError("Password must be at least 8 characters long")
-      setIsLoading(false)
-      return
+      setFormError("Password must be at least 8 characters long");
+      setIsLoading(false);
+      return;
     }
 
     try {
       // Register the user
-      await register(registerData.username, registerData.email, registerData.password)
-      console.log("[Auth Page] Registration successful, redirecting to:", callbackUrl)
+      await register(
+        registerData.username,
+        registerData.email,
+        registerData.password
+      );
+      console.log(
+        "[Auth Page] Registration successful, redirecting to:",
+        callbackUrl
+      );
       // Force navigation to callback URL or homepage
-      window.location.href = callbackUrl
+      window.location.href = callbackUrl;
     } catch (err) {
-      setFormError(err instanceof Error ? err.message : "Failed to create account")
+      setFormError(
+        err instanceof Error ? err.message : "Failed to create account"
+      );
     } finally {
-      setIsLoading(false)
+      setIsLoading(false);
     }
-  }
+  };
 
   // Return a simpler version during SSR
   if (!mounted) {
@@ -126,7 +152,7 @@ export default function AuthPage() {
           </div>
         </div>
       </div>
-    )
+    );
   }
 
   // If already authenticated, show loading state
@@ -150,7 +176,7 @@ export default function AuthPage() {
           </Card>
         </div>
       </div>
-    )
+    );
   }
 
   return (
@@ -179,7 +205,9 @@ export default function AuthPage() {
             <Card>
               <CardHeader>
                 <CardTitle>Sign In</CardTitle>
-                <CardDescription>Enter your credentials to access your account</CardDescription>
+                <CardDescription>
+                  Enter your credentials to access your account
+                </CardDescription>
               </CardHeader>
               <form onSubmit={handleSignIn}>
                 <CardContent className="space-y-4">
@@ -194,14 +222,19 @@ export default function AuthPage() {
                         className="pl-10"
                         required
                         value={loginData.email}
-                        onChange={(e) => setLoginData({ ...loginData, email: e.target.value })}
+                        onChange={(e) =>
+                          setLoginData({ ...loginData, email: e.target.value })
+                        }
                       />
                     </div>
                   </div>
                   <div className="space-y-2">
                     <div className="flex items-center justify-between">
                       <Label htmlFor="password">Password</Label>
-                      <Link href="/auth/reset-password" className="text-xs text-green-400 hover:underline">
+                      <Link
+                        href="/auth/reset-password"
+                        className="text-xs text-green-400 hover:underline"
+                      >
                         Forgot password?
                       </Link>
                     </div>
@@ -214,7 +247,12 @@ export default function AuthPage() {
                         className="pl-10"
                         required
                         value={loginData.password}
-                        onChange={(e) => setLoginData({ ...loginData, password: e.target.value })}
+                        onChange={(e) =>
+                          setLoginData({
+                            ...loginData,
+                            password: e.target.value,
+                          })
+                        }
                       />
                     </div>
                   </div>
@@ -252,7 +290,9 @@ export default function AuthPage() {
             <Card>
               <CardHeader>
                 <CardTitle>Create an Account</CardTitle>
-                <CardDescription>Enter your details to create a new account</CardDescription>
+                <CardDescription>
+                  Enter your details to create a new account
+                </CardDescription>
               </CardHeader>
               <form onSubmit={handleRegister}>
                 <CardContent className="space-y-4">
@@ -267,7 +307,12 @@ export default function AuthPage() {
                         className="pl-10"
                         required
                         value={registerData.username}
-                        onChange={(e) => setRegisterData({ ...registerData, username: e.target.value })}
+                        onChange={(e) =>
+                          setRegisterData({
+                            ...registerData,
+                            username: e.target.value,
+                          })
+                        }
                       />
                     </div>
                   </div>
@@ -282,7 +327,12 @@ export default function AuthPage() {
                         className="pl-10"
                         required
                         value={registerData.email}
-                        onChange={(e) => setRegisterData({ ...registerData, email: e.target.value })}
+                        onChange={(e) =>
+                          setRegisterData({
+                            ...registerData,
+                            email: e.target.value,
+                          })
+                        }
                       />
                     </div>
                   </div>
@@ -297,13 +347,22 @@ export default function AuthPage() {
                         className="pl-10"
                         required
                         value={registerData.password}
-                        onChange={(e) => setRegisterData({ ...registerData, password: e.target.value })}
+                        onChange={(e) =>
+                          setRegisterData({
+                            ...registerData,
+                            password: e.target.value,
+                          })
+                        }
                       />
                     </div>
-                    <p className="text-xs text-muted-foreground">Password must be at least 8 characters long</p>
+                    <p className="text-xs text-muted-foreground">
+                      Password must be at least 8 characters long
+                    </p>
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="register-confirm-password">Confirm Password</Label>
+                    <Label htmlFor="register-confirm-password">
+                      Confirm Password
+                    </Label>
                     <div className="relative">
                       <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                       <Input
@@ -313,7 +372,12 @@ export default function AuthPage() {
                         className="pl-10"
                         required
                         value={registerData.confirmPassword}
-                        onChange={(e) => setRegisterData({ ...registerData, confirmPassword: e.target.value })}
+                        onChange={(e) =>
+                          setRegisterData({
+                            ...registerData,
+                            confirmPassword: e.target.value,
+                          })
+                        }
                       />
                     </div>
                   </div>
@@ -321,11 +385,17 @@ export default function AuthPage() {
                     <Checkbox id="terms" required />
                     <Label htmlFor="terms" className="text-sm">
                       I agree to the{" "}
-                      <Link href="/terms" className="text-green-400 hover:underline">
+                      <Link
+                        href="/terms"
+                        className="text-green-400 hover:underline"
+                      >
                         Terms of Service
                       </Link>{" "}
                       and{" "}
-                      <Link href="/privacy" className="text-green-400 hover:underline">
+                      <Link
+                        href="/privacy"
+                        className="text-green-400 hover:underline"
+                      >
                         Privacy Policy
                       </Link>
                     </Label>
@@ -369,5 +439,5 @@ export default function AuthPage() {
         </div>
       </div>
     </div>
-  )
+  );
 }

@@ -1,35 +1,35 @@
-"use client"
+"use client";
 
-import { useState, useEffect } from "react"
-import { ComicCard } from "@/components/comic-card"
-import { SortingControls } from "@/components/sorting-controls"
-import { FilterControls } from "@/components/filter-controls"
-import { Pagination } from "@/components/pagination"
-import { comicService } from "@/lib/api"
-import { Skeleton } from "@/components/ui/skeleton"
-import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert"
-import { AlertCircle } from "lucide-react"
-import type { Comic } from "@/types"
+import { useState, useEffect } from "react";
+import { ComicCard } from "@/components/comic-card";
+import { SortingControls } from "@/components/sorting-controls";
+import { FilterControls } from "@/components/filter-controls";
+import { Pagination } from "@/components/pagination";
+import { comicService } from "@/lib/api";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
+import { AlertCircle } from "lucide-react";
+import type { Comic } from "@/types";
 
 export default function ComicsPage() {
-  const [comics, setComics] = useState<Comic[]>([])
-  const [totalPages, setTotalPages] = useState(1)
-  const [isLoading, setIsLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
+  const [comics, setComics] = useState<Comic[]>([]);
+  const [totalPages, setTotalPages] = useState(1);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   // Filter and sort state
-  const [sortOption, setSortOption] = useState("latest")
-  const [currentPage, setCurrentPage] = useState(1)
-  const [selectedGenres, setSelectedGenres] = useState<string[]>([])
-  const [statusFilter, setStatusFilter] = useState<string>("all")
-  const [genres, setGenres] = useState<string[]>([])
+  const [sortOption, setSortOption] = useState("latest");
+  const [currentPage, setCurrentPage] = useState(1);
+  const [selectedGenres, setSelectedGenres] = useState<string[]>([]);
+  const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [genres, setGenres] = useState<string[]>([]);
 
-  const itemsPerPage = 18
+  const itemsPerPage = 18;
 
   // Fetch comics based on filters
   useEffect(() => {
     const fetchComics = async () => {
-      setIsLoading(true)
+      setIsLoading(true);
       try {
         const { comics, totalPages } = await comicService.getAllComics({
           page: currentPage,
@@ -37,83 +37,93 @@ export default function ComicsPage() {
           sort: sortOption,
           genres: selectedGenres,
           status: statusFilter !== "all" ? statusFilter : undefined,
-        })
+        });
 
         // Validate comics data
         if (!comics || !Array.isArray(comics)) {
-          console.error("Invalid comics data received:", comics)
-          setError("Received invalid data from the server. Please try again.")
-          setComics([])
-          setTotalPages(1)
+          console.error("Invalid comics data received:", comics);
+          setError("Received invalid data from the server. Please try again.");
+          setComics([]);
+          setTotalPages(1);
         } else {
           // Filter out any comics with missing IDs
-          const validComics = comics.filter((comic) => comic && comic.id)
+          const validComics = comics.filter((comic) => comic && comic.id);
 
           // Additional client-side filtering to ensure genre filtering works correctly
           let filteredComics =
             selectedGenres.length > 0
-              ? validComics.filter((comic) => selectedGenres.every((genre) => comic.genres.includes(genre)))
-              : validComics
+              ? validComics.filter((comic) =>
+                  selectedGenres.every((genre) => comic.genres.includes(genre))
+                )
+              : validComics;
 
           // Apply client-side sorting to ensure it works correctly
           filteredComics = [...filteredComics].sort((a, b) => {
             switch (sortOption) {
               case "a-z":
-                return a.title.localeCompare(b.title)
+                return a.title.localeCompare(b.title);
               case "z-a":
-                return b.title.localeCompare(a.title)
+                return b.title.localeCompare(a.title);
               case "latest":
               default:
-                return a.updatedAt.includes("hour") ? -1 : b.updatedAt.includes("hour") ? 1 : 0
+                return a.updatedAt.includes("hour")
+                  ? -1
+                  : b.updatedAt.includes("hour")
+                  ? 1
+                  : 0;
             }
-          })
+          });
 
           if (validComics.length < comics.length) {
-            console.warn(`Filtered out ${comics.length - validComics.length} comics with missing IDs`)
+            console.warn(
+              `Filtered out ${
+                comics.length - validComics.length
+              } comics with missing IDs`
+            );
           }
 
-          setComics(filteredComics)
-          setTotalPages(totalPages)
-          setError(null)
+          setComics(filteredComics);
+          setTotalPages(totalPages);
+          setError(null);
         }
       } catch (err) {
-        console.error("Error fetching comics:", err)
-        setError("Failed to load comics. Please try again later.")
-        setComics([])
-        setTotalPages(1)
+        console.error("Error fetching comics:", err);
+        setError("Failed to load comics. Please try again later.");
+        setComics([]);
+        setTotalPages(1);
       } finally {
-        setIsLoading(false)
+        setIsLoading(false);
       }
-    }
+    };
 
-    fetchComics()
-  }, [currentPage, sortOption, selectedGenres, statusFilter])
+    fetchComics();
+  }, [currentPage, sortOption, selectedGenres, statusFilter]);
 
   // Fetch available genres
   useEffect(() => {
     const fetchGenres = async () => {
       try {
-        const genreList = await comicService.getGenres()
+        const genreList = await comicService.getGenres();
         if (Array.isArray(genreList)) {
-          setGenres(genreList)
+          setGenres(genreList);
         } else {
-          console.error("Invalid genres data received:", genreList)
-          setGenres([])
+          console.error("Invalid genres data received:", genreList);
+          setGenres([]);
         }
       } catch (err) {
-        console.error("Error fetching genres:", err)
-        setGenres([])
+        console.error("Error fetching genres:", err);
+        setGenres([]);
       }
-    }
+    };
 
-    fetchGenres()
-  }, [])
+    fetchGenres();
+  }, []);
 
   // Handle page change
   const handlePageChange = (page: number) => {
-    setCurrentPage(page)
-    window.scrollTo({ top: 0, behavior: "smooth" })
-  }
+    setCurrentPage(page);
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
 
   return (
     <main className="container mx-auto px-4 py-8">
@@ -139,7 +149,10 @@ export default function ComicsPage() {
         </div>
 
         <div className="flex-1">
-          <SortingControls sortOption={sortOption} setSortOption={setSortOption} />
+          <SortingControls
+            sortOption={sortOption}
+            setSortOption={setSortOption}
+          />
 
           {isLoading ? (
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-3 lg:grid-cols-6 gap-6 mt-6">
@@ -161,17 +174,23 @@ export default function ComicsPage() {
             </div>
           ) : (
             <div className="text-center py-12">
-              <p className="text-muted-foreground">No comics found matching your filters.</p>
+              <p className="text-muted-foreground">
+                No comics found matching your filters.
+              </p>
             </div>
           )}
 
           {totalPages > 1 && !isLoading && (
             <div className="mt-8">
-              <Pagination currentPage={currentPage} totalPages={totalPages} onPageChange={handlePageChange} />
+              <Pagination
+                currentPage={currentPage}
+                totalPages={totalPages}
+                onPageChange={handlePageChange}
+              />
             </div>
           )}
         </div>
       </div>
     </main>
-  )
+  );
 }

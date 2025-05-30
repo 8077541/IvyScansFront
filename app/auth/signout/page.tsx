@@ -1,28 +1,28 @@
-"use client"
+"use client";
 
-import { useEffect } from "react"
-import { useRouter } from "next/navigation"
-import { useAuth } from "@/contexts/auth-context"
-import { Loader2 } from "lucide-react"
+import { useEffect } from "react";
+import { useRouter } from "next/navigation";
+import { useAuth } from "@/contexts/auth-context";
+import { Loader2 } from "lucide-react";
 
 export default function SignOutPage() {
-  const router = useRouter()
-  const { logout } = useAuth()
+  const router = useRouter();
+  const { logout } = useAuth();
 
   useEffect(() => {
     const performSignOut = async () => {
       try {
-        await logout()
-        router.push("/")
+        await logout();
+        router.push("/");
       } catch (error) {
-        console.error("Error signing out:", error)
+        console.error("Error signing out:", error);
         // Even if there's an error, redirect to home
-        router.push("/")
+        router.push("/");
       }
-    }
+    };
 
-    performSignOut()
-  }, [logout, router])
+    performSignOut();
+  }, [logout, router]);
 
   return (
     <div className="container flex flex-col items-center justify-center min-h-[calc(100vh-16rem)]">
@@ -32,5 +32,5 @@ export default function SignOutPage() {
         <p className="text-muted-foreground">You will be redirected shortly.</p>
       </div>
     </div>
-  )
+  );
 }

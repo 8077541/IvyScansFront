@@ -1,65 +1,86 @@
-"use client"
+"use client";
 
-import { useState } from "react"
-import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
-import { Separator } from "@/components/ui/separator"
-import { Badge } from "@/components/ui/badge"
-import { API_BASE_URL, USE_MOCK_API } from "@/lib/config"
-import { comicService, authService, userService } from "@/lib/api"
+import { useState } from "react";
+import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Separator } from "@/components/ui/separator";
+import { Badge } from "@/components/ui/badge";
+import { API_BASE_URL, USE_MOCK_API } from "@/lib/config";
+import { comicService, authService, userService } from "@/lib/api";
 
 export default function ApiDiagnosticsPage() {
-  const [results, setResults] = useState<Array<{ name: string; status: "success" | "error"; message: string }>>([])
-  const [isRunning, setIsRunning] = useState(false)
-  const [activeTest, setActiveTest] = useState<string | null>(null)
+  const [results, setResults] = useState<
+    Array<{ name: string; status: "success" | "error"; message: string }>
+  >([]);
+  const [isRunning, setIsRunning] = useState(false);
+  const [activeTest, setActiveTest] = useState<string | null>(null);
 
   const runTest = async (name: string, testFn: () => Promise<any>) => {
-    setActiveTest(name)
+    setActiveTest(name);
     try {
-      await testFn()
-      setResults((prev) => [...prev, { name, status: "success", message: "Test passed successfully" }])
+      await testFn();
+      setResults((prev) => [
+        ...prev,
+        { name, status: "success", message: "Test passed successfully" },
+      ]);
     } catch (error) {
       setResults((prev) => [
         ...prev,
-        { name, status: "error", message: error instanceof Error ? error.message : String(error) },
-      ])
+        {
+          name,
+          status: "error",
+          message: error instanceof Error ? error.message : String(error),
+        },
+      ]);
     }
-    setActiveTest(null)
-  }
+    setActiveTest(null);
+  };
 
   const runAllTests = async () => {
-    setIsRunning(true)
-    setResults([])
+    setIsRunning(true);
+    setResults([]);
 
     // Test comic endpoints
-    await runTest("Get All Comics", () => comicService.getAllComics())
-    await runTest("Get Featured Comics", () => comicService.getFeaturedComics())
-    await runTest("Get Latest Comics", () => comicService.getLatestComics())
-    await runTest("Get Comic Details", () => comicService.getComicById("1"))
-    await runTest("Get Comic Chapters", () => comicService.getComicChapters("1"))
-    await runTest("Get Chapter", () => comicService.getChapter("1", 1))
-    await runTest("Get Genres", () => comicService.getGenres())
-    await runTest("Search Comics", () => comicService.searchComics("dragon"))
+    await runTest("Get All Comics", () => comicService.getAllComics());
+    await runTest("Get Featured Comics", () =>
+      comicService.getFeaturedComics()
+    );
+    await runTest("Get Latest Comics", () => comicService.getLatestComics());
+    await runTest("Get Comic Details", () => comicService.getComicById("1"));
+    await runTest("Get Comic Chapters", () =>
+      comicService.getComicChapters("1")
+    );
+    await runTest("Get Chapter", () => comicService.getChapter("1", 1));
+    await runTest("Get Genres", () => comicService.getGenres());
+    await runTest("Search Comics", () => comicService.searchComics("dragon"));
 
     // Test auth endpoints (only if not using mock API)
     if (!USE_MOCK_API) {
-      await runTest("Get Current User", () => authService.getCurrentUser())
+      await runTest("Get Current User", () => authService.getCurrentUser());
     }
 
     // Test user endpoints
-    await runTest("Get Bookmarks", () => userService.getBookmarks())
-    await runTest("Get Ratings", () => userService.getRatings())
-    await runTest("Get Reading History", () => userService.getReadingHistory())
-    await runTest("Get Profile", () => userService.getProfile())
+    await runTest("Get Bookmarks", () => userService.getBookmarks());
+    await runTest("Get Ratings", () => userService.getRatings());
+    await runTest("Get Reading History", () => userService.getReadingHistory());
+    await runTest("Get Profile", () => userService.getProfile());
 
-    setIsRunning(false)
-  }
+    setIsRunning(false);
+  };
 
   return (
     <div className="container py-8">
       <h1 className="text-3xl font-bold mb-2">API Diagnostics</h1>
       <p className="text-muted-foreground mb-6">
-        Test the API endpoints to ensure they are working correctly and diagnose any issues.
+        Test the API endpoints to ensure they are working correctly and diagnose
+        any issues.
       </p>
 
       <Card className="mb-6">
@@ -75,7 +96,10 @@ export default function ApiDiagnosticsPage() {
             </div>
             <div>
               <p className="text-sm font-medium mb-1">Mock API</p>
-              <Badge variant={USE_MOCK_API ? "default" : "outline"} className={USE_MOCK_API ? "bg-green-500" : ""}>
+              <Badge
+                variant={USE_MOCK_API ? "default" : "outline"}
+                className={USE_MOCK_API ? "bg-green-500" : ""}
+              >
                 {USE_MOCK_API ? "Enabled" : "Disabled"}
               </Badge>
             </div>
@@ -124,7 +148,13 @@ export default function ApiDiagnosticsPage() {
                     {result.status === "success" ? "Success" : "Error"}
                   </Badge>
                 </div>
-                <p className={`text-sm mt-1 ${result.status === "success" ? "text-green-500" : "text-red-500"}`}>
+                <p
+                  className={`text-sm mt-1 ${
+                    result.status === "success"
+                      ? "text-green-500"
+                      : "text-red-500"
+                  }`}
+                >
                   {result.message}
                 </p>
               </div>
@@ -145,34 +175,35 @@ export default function ApiDiagnosticsPage() {
             <div>
               <h3 className="font-medium">CORS Errors</h3>
               <p className="text-sm text-muted-foreground">
-                If you see CORS errors in the console, ensure your backend has proper CORS headers set up. The backend
-                should allow requests from your frontend domain.
+                If you see CORS errors in the console, ensure your backend has
+                proper CORS headers set up. The backend should allow requests
+                from your frontend domain.
               </p>
             </div>
             <div>
               <h3 className="font-medium">Authentication Errors</h3>
               <p className="text-sm text-muted-foreground">
-                If you see 401 or 403 errors, check that your authentication token is being properly sent and that it
-                hasn't expired.
+                If you see 401 or 403 errors, check that your authentication
+                token is being properly sent and that it hasn't expired.
               </p>
             </div>
             <div>
               <h3 className="font-medium">Network Errors</h3>
               <p className="text-sm text-muted-foreground">
-                If you see "Failed to fetch" errors, check that your backend server is running and accessible from your
-                frontend.
+                If you see "Failed to fetch" errors, check that your backend
+                server is running and accessible from your frontend.
               </p>
             </div>
             <div>
               <h3 className="font-medium">Data Format Errors</h3>
               <p className="text-sm text-muted-foreground">
-                If you see errors about unexpected token or invalid JSON, check that your backend is returning data in
-                the expected format.
+                If you see errors about unexpected token or invalid JSON, check
+                that your backend is returning data in the expected format.
               </p>
             </div>
           </CardContent>
         </Card>
       </div>
     </div>
-  )
+  );
 }

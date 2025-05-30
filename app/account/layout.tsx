@@ -1,32 +1,34 @@
-"use client"
+"use client";
 
-import { useEffect, useState } from "react"
-import type { ReactNode } from "react"
-import Link from "next/link"
-import { User, Bookmark, Star, LogOut, History } from "lucide-react"
-import { Button } from "@/components/ui/button"
-import { Separator } from "@/components/ui/separator"
-import { useAuth } from "@/contexts/auth-context"
-import { Skeleton } from "@/components/ui/skeleton"
+import { useEffect, useState } from "react";
+import type { ReactNode } from "react";
+import Link from "next/link";
+import { User, Bookmark, Star, LogOut, History } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Separator } from "@/components/ui/separator";
+import { useAuth } from "@/contexts/auth-context";
+import { Skeleton } from "@/components/ui/skeleton";
 
 interface AccountLayoutProps {
-  children: ReactNode
+  children: ReactNode;
 }
 
 export default function AccountLayout({ children }: AccountLayoutProps) {
-  const { isAuthenticated, isLoading } = useAuth()
-  const [mounted, setMounted] = useState(false)
+  const { isAuthenticated, isLoading } = useAuth();
+  const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
-    setMounted(true)
+    setMounted(true);
 
     // If not authenticated and not loading, redirect to login
     if (mounted && !isAuthenticated && !isLoading) {
-      console.log("[Account Layout] Not authenticated, redirecting to login")
-      const currentPath = window.location.pathname
-      window.location.href = `/auth?callbackUrl=${encodeURIComponent(currentPath)}`
+      console.log("[Account Layout] Not authenticated, redirecting to login");
+      const currentPath = window.location.pathname;
+      window.location.href = `/auth?callbackUrl=${encodeURIComponent(
+        currentPath
+      )}`;
     }
-  }, [isAuthenticated, isLoading, mounted])
+  }, [isAuthenticated, isLoading, mounted]);
 
   // Show loading state while checking authentication
   if (isLoading || !mounted) {
@@ -41,18 +43,21 @@ export default function AccountLayout({ children }: AccountLayoutProps) {
               ))}
             </div>
           </aside>
-          <Separator orientation="vertical" className="hidden md:block h-auto" />
+          <Separator
+            orientation="vertical"
+            className="hidden md:block h-auto"
+          />
           <main className="flex-1">
             <Skeleton className="h-96 w-full" />
           </main>
         </div>
       </div>
-    )
+    );
   }
 
   // If not authenticated, don't render anything (redirect will happen)
   if (!isAuthenticated) {
-    return null
+    return null;
   }
 
   // Render the actual layout if authenticated
@@ -102,5 +107,5 @@ export default function AccountLayout({ children }: AccountLayoutProps) {
         <main className="flex-1">{children}</main>
       </div>
     </div>
-  )
+  );
 }
