@@ -1,11 +1,12 @@
-import { Suspense } from "react";
-import Link from "next/link";
-import { ChevronRight } from "lucide-react";
-import { ComicCard } from "@/components/comic-card";
-import { comicService } from "@/lib/api";
-import { Skeleton } from "@/components/ui/skeleton";
-import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
-import { AlertCircle } from "lucide-react";
+import { Suspense } from "react"
+import Link from "next/link"
+import { ChevronRight } from "lucide-react"
+import { ComicCard } from "@/components/comic-card"
+import { CurrentlyReading } from "@/components/currently-reading"
+import { comicService } from "@/lib/api"
+import { Skeleton } from "@/components/ui/skeleton"
+import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert"
+import { AlertCircle } from "lucide-react"
 
 // Loading component for featured comics
 function FeaturedComicsSkeleton() {
@@ -21,7 +22,7 @@ function FeaturedComicsSkeleton() {
           </div>
         ))}
     </div>
-  );
+  )
 }
 
 // Loading component for latest updates
@@ -38,47 +39,39 @@ function LatestUpdatesSkeleton() {
           </div>
         ))}
     </div>
-  );
+  )
 }
 
 // Featured comics component
 async function FeaturedComics() {
   try {
     // This would fetch from your API in production
-    const featuredComics = await comicService.getFeaturedComics();
+    const featuredComics = await comicService.getFeaturedComics()
 
     // Validate comics data
     if (!featuredComics || !Array.isArray(featuredComics)) {
-      console.error("Invalid featured comics data received:", featuredComics);
+      console.error("Invalid featured comics data received:", featuredComics)
       return (
         <Alert variant="destructive">
           <AlertCircle className="h-4 w-4" />
           <AlertTitle>Error</AlertTitle>
-          <AlertDescription>
-            Failed to load featured comics. Please try again later.
-          </AlertDescription>
+          <AlertDescription>Failed to load featured comics. Please try again later.</AlertDescription>
         </Alert>
-      );
+      )
     }
 
     // Filter out any comics with missing IDs
-    const validComics = featuredComics.filter((comic) => comic && comic.id);
+    const validComics = featuredComics.filter((comic) => comic && comic.id)
     if (validComics.length < featuredComics.length) {
-      console.warn(
-        `Filtered out ${
-          featuredComics.length - validComics.length
-        } featured comics with missing IDs`
-      );
+      console.warn(`Filtered out ${featuredComics.length - validComics.length} featured comics with missing IDs`)
     }
 
     if (validComics.length === 0) {
       return (
         <div className="text-center py-6">
-          <p className="text-muted-foreground">
-            No featured comics available at the moment.
-          </p>
+          <p className="text-muted-foreground">No featured comics available at the moment.</p>
         </div>
-      );
+      )
     }
 
     return (
@@ -87,18 +80,16 @@ async function FeaturedComics() {
           <ComicCard key={comic.id} comic={comic} />
         ))}
       </div>
-    );
+    )
   } catch (error) {
-    console.error("Error fetching featured comics:", error);
+    console.error("Error fetching featured comics:", error)
     return (
       <Alert variant="destructive">
         <AlertCircle className="h-4 w-4" />
         <AlertTitle>Error</AlertTitle>
-        <AlertDescription>
-          Failed to load featured comics. Please try again later.
-        </AlertDescription>
+        <AlertDescription>Failed to load featured comics. Please try again later.</AlertDescription>
       </Alert>
-    );
+    )
   }
 }
 
@@ -106,40 +97,32 @@ async function FeaturedComics() {
 async function LatestUpdates() {
   try {
     // This would fetch from your API in production
-    const { comics: latestUpdates } = await comicService.getLatestComics(1, 6);
+    const { comics: latestUpdates } = await comicService.getLatestComics(1, 6)
 
     // Validate comics data
     if (!latestUpdates || !Array.isArray(latestUpdates)) {
-      console.error("Invalid latest comics data received:", latestUpdates);
+      console.error("Invalid latest comics data received:", latestUpdates)
       return (
         <Alert variant="destructive">
           <AlertCircle className="h-4 w-4" />
           <AlertTitle>Error</AlertTitle>
-          <AlertDescription>
-            Failed to load latest comics. Please try again later.
-          </AlertDescription>
+          <AlertDescription>Failed to load latest comics. Please try again later.</AlertDescription>
         </Alert>
-      );
+      )
     }
 
     // Filter out any comics with missing IDs
-    const validComics = latestUpdates.filter((comic) => comic && comic.id);
+    const validComics = latestUpdates.filter((comic) => comic && comic.id)
     if (validComics.length < latestUpdates.length) {
-      console.warn(
-        `Filtered out ${
-          latestUpdates.length - validComics.length
-        } latest comics with missing IDs`
-      );
+      console.warn(`Filtered out ${latestUpdates.length - validComics.length} latest comics with missing IDs`)
     }
 
     if (validComics.length === 0) {
       return (
         <div className="text-center py-6">
-          <p className="text-muted-foreground">
-            No latest updates available at the moment.
-          </p>
+          <p className="text-muted-foreground">No latest updates available at the moment.</p>
         </div>
-      );
+      )
     }
 
     return (
@@ -148,31 +131,29 @@ async function LatestUpdates() {
           <ComicCard key={comic.id} comic={comic} />
         ))}
       </div>
-    );
+    )
   } catch (error) {
-    console.error("Error fetching latest updates:", error);
+    console.error("Error fetching latest updates:", error)
     return (
       <Alert variant="destructive">
         <AlertCircle className="h-4 w-4" />
         <AlertTitle>Error</AlertTitle>
-        <AlertDescription>
-          Failed to load latest updates. Please try again later.
-        </AlertDescription>
+        <AlertDescription>Failed to load latest updates. Please try again later.</AlertDescription>
       </Alert>
-    );
+    )
   }
 }
 
 export default function Home() {
   return (
     <main className="container mx-auto px-4 py-8">
+      {/* Currently Reading section - only shows for authenticated users */}
+      <CurrentlyReading />
+
       <section className="mb-12">
         <div className="flex items-center justify-between mb-6">
           <h2 className="text-2xl font-bold">Featured Comics</h2>
-          <Link
-            href="/comics"
-            className="text-green-400 hover:text-green-300 flex items-center"
-          >
+          <Link href="/comics" className="text-green-400 hover:text-green-300 flex items-center">
             View All <ChevronRight className="h-4 w-4 ml-1" />
           </Link>
         </div>
@@ -184,10 +165,7 @@ export default function Home() {
       <section>
         <div className="flex items-center justify-between mb-6">
           <h2 className="text-2xl font-bold">Latest Updates</h2>
-          <Link
-            href="/latest"
-            className="text-green-400 hover:text-green-300 flex items-center"
-          >
+          <Link href="/latest" className="text-green-400 hover:text-green-300 flex items-center">
             View All <ChevronRight className="h-4 w-4 ml-1" />
           </Link>
         </div>
@@ -196,5 +174,5 @@ export default function Home() {
         </Suspense>
       </section>
     </main>
-  );
+  )
 }

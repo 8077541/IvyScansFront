@@ -1,56 +1,56 @@
-import React, { Suspense } from "react";
-import Link from "next/link";
-import Image from "next/image";
-import { ChevronLeft, BookOpen, Clock, Tag } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Separator } from "@/components/ui/separator";
-import { Skeleton } from "@/components/ui/skeleton";
-import { comicService } from "@/lib/api";
-import { BookmarkButton } from "@/components/bookmark-button";
-import { RatingControl } from "@/components/rating-control";
-import { formatRelativeTime } from "@/lib/date-utils";
+import React, { Suspense } from "react"
+import Link from "next/link"
+import Image from "next/image"
+import { ChevronLeft, BookOpen, Clock, Tag } from "lucide-react"
+import { Button } from "@/components/ui/button"
+import { Badge } from "@/components/ui/badge"
+import { Separator } from "@/components/ui/separator"
+import { Skeleton } from "@/components/ui/skeleton"
+import { comicService } from "@/lib/api"
+import { BookmarkButton } from "@/components/bookmark-button"
+import { RatingControl } from "@/components/rating-control"
+import { formatRelativeTime } from "@/lib/date-utils"
 
 interface ComicPageProps {
   params: {
-    id: string;
-  };
+    id: string
+  }
 }
 
 // Loading component for comic details
 function ComicDetailsSkeleton() {
   return (
-    <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+    <div className="grid grid-cols-1 md:grid-cols-3 gap-8 animate-pulse">
       <div className="md:col-span-1">
-        <Skeleton className="aspect-[3/4] w-full rounded-lg" />
+        <div className="aspect-[3/4] w-full rounded-lg bg-secondary" />
       </div>
       <div className="md:col-span-2 space-y-4">
-        <Skeleton className="h-10 w-3/4" />
+        <div className="h-10 w-3/4 bg-secondary rounded" />
         <div className="flex flex-wrap gap-2">
           {Array(4)
             .fill(0)
             .map((_, i) => (
-              <Skeleton key={i} className="h-6 w-20 rounded-full" />
+              <div key={i} className="h-6 w-20 rounded-full bg-secondary" />
             ))}
         </div>
         <div className="grid grid-cols-2 gap-4">
           {Array(4)
             .fill(0)
             .map((_, i) => (
-              <Skeleton key={i} className="h-6 w-full" />
+              <div key={i} className="h-6 w-full bg-secondary rounded" />
             ))}
         </div>
-        <Skeleton className="h-32 w-full" />
+        <div className="h-32 w-full bg-secondary rounded" />
         <div className="flex flex-wrap gap-3">
           {Array(3)
             .fill(0)
             .map((_, i) => (
-              <Skeleton key={i} className="h-10 w-32" />
+              <div key={i} className="h-10 w-32 bg-secondary rounded" />
             ))}
         </div>
       </div>
     </div>
-  );
+  )
 }
 
 // Loading component for chapters
@@ -63,7 +63,7 @@ function ChaptersSkeleton() {
           <Skeleton key={i} className="h-16 w-full rounded-lg" />
         ))}
     </div>
-  );
+  )
 }
 
 // Update ComicDetails to be async
@@ -72,27 +72,21 @@ async function ComicDetails({ id }: { id: string }) {
   if (!id) {
     return (
       <div className="text-center py-8">
-        <h2 className="text-xl font-bold text-red-500">
-          Error: Invalid Comic ID
-        </h2>
-        <p className="text-muted-foreground mt-2">
-          The comic ID is missing or invalid.
-        </p>
+        <h2 className="text-xl font-bold text-red-500">Error: Invalid Comic ID</h2>
+        <p className="text-muted-foreground mt-2">The comic ID is missing or invalid.</p>
         <Button className="mt-4" asChild>
           <Link href="/comics">Browse Comics</Link>
         </Button>
       </div>
-    );
+    )
   }
 
   try {
     // This would fetch from your API in production
-    const comic = await comicService.getComicById(id);
+    const comic = await comicService.getComicById(id)
 
     // Extract chapter number safely
-    const latestChapterNumber = comic.latestChapter
-      ? comic.latestChapter.split(" ")[1]
-      : "1";
+    const latestChapterNumber = comic.latestChapter ? comic.latestChapter.split(" ")[1] : "1"
 
     return (
       <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
@@ -115,11 +109,7 @@ async function ComicDetails({ id }: { id: string }) {
           <div className="flex flex-wrap gap-2 mb-4">
             {comic.genres &&
               comic.genres.map((genre) => (
-                <Badge
-                  key={genre}
-                  variant="outline"
-                  className="bg-secondary text-secondary-foreground"
-                >
+                <Badge key={genre} variant="outline" className="bg-secondary text-secondary-foreground">
                   {genre}
                 </Badge>
               ))}
@@ -153,43 +143,33 @@ async function ComicDetails({ id }: { id: string }) {
             <RatingControl comicId={id} comicTitle={comic.title} />
           </div>
 
-          <p className="text-muted-foreground mb-6">
-            {comic.description || "No description available."}
-          </p>
+          <p className="text-muted-foreground mb-6">{comic.description || "No description available."}</p>
 
           <div className="flex flex-wrap gap-3">
             <Button className="bg-green-500 hover:bg-green-600">
-              <Link href={`/comics/${comic.id}/chapters/1`}>
-                Read First Chapter
-              </Link>
+              <Link href={`/comics/${comic.id}/chapters/1`}>Read First Chapter</Link>
             </Button>
             {comic.latestChapter && (
               <Button variant="outline">
-                <Link
-                  href={`/comics/${comic.id}/chapters/${latestChapterNumber}`}
-                >
-                  Read Latest Chapter
-                </Link>
+                <Link href={`/comics/${comic.id}/chapters/${latestChapterNumber}`}>Read Latest Chapter</Link>
               </Button>
             )}
             <BookmarkButton comicId={id} />
           </div>
         </div>
       </div>
-    );
+    )
   } catch (error) {
-    console.error("Error fetching comic details:", error);
+    console.error("Error fetching comic details:", error)
     return (
       <div className="text-center py-8">
         <h2 className="text-xl font-bold text-red-500">Error Loading Comic</h2>
-        <p className="text-muted-foreground mt-2">
-          Failed to load comic details. Please try again later.
-        </p>
+        <p className="text-muted-foreground mt-2">Failed to load comic details. Please try again later.</p>
         <Button className="mt-4" asChild>
           <Link href="/comics">Browse Comics</Link>
         </Button>
       </div>
-    );
+    )
   }
 }
 
@@ -199,16 +179,14 @@ async function Chapters({ id }: { id: string }) {
   if (!id) {
     return (
       <div className="text-center py-8">
-        <p className="text-muted-foreground">
-          Cannot load chapters: Invalid comic ID.
-        </p>
+        <p className="text-muted-foreground">Cannot load chapters: Invalid comic ID.</p>
       </div>
-    );
+    )
   }
 
   try {
     // This would fetch from your API in production
-    const chapters = await comicService.getComicChapters(id);
+    const chapters = await comicService.getComicChapters(id)
 
     return (
       <div className="grid gap-2">
@@ -221,68 +199,51 @@ async function Chapters({ id }: { id: string }) {
             >
               <div className="flex items-center">
                 <span className="font-medium">Chapter {chapter.number}</span>
-                {chapter.title && (
-                  <span className="ml-2 text-muted-foreground">
-                    - {chapter.title}
-                  </span>
-                )}
+                {chapter.title && <span className="ml-2 text-muted-foreground">- {chapter.title}</span>}
               </div>
-              <span className="text-sm text-muted-foreground">
-                {formatRelativeTime(chapter.date)}
-              </span>
+              <span className="text-sm text-muted-foreground">{formatRelativeTime(chapter.date)}</span>
             </Link>
           ))
         ) : (
-          <div className="text-center py-8 text-muted-foreground">
-            No chapters available yet.
-          </div>
+          <div className="text-center py-8 text-muted-foreground">No chapters available yet.</div>
         )}
       </div>
-    );
+    )
   } catch (error) {
-    console.error("Error fetching chapters:", error);
+    console.error("Error fetching chapters:", error)
     return (
       <div className="text-center py-8">
-        <p className="text-muted-foreground">
-          Failed to load chapters. Please try again later.
-        </p>
+        <p className="text-muted-foreground">Failed to load chapters. Please try again later.</p>
       </div>
-    );
+    )
   }
 }
 
 // Make the ComicPage component async and use React.use() for params
 export default function ComicPage({ params }: ComicPageProps) {
   // Unwrap params using React.use()
-  const resolvedParams = React.use(Promise.resolve(params));
-  const id = resolvedParams.id;
+  const resolvedParams = React.use(Promise.resolve(params))
+  const id = resolvedParams.id
 
   // If ID is missing, show error
   if (!id) {
     return (
       <main className="container mx-auto px-4 py-8">
         <div className="text-center py-8">
-          <h2 className="text-xl font-bold text-red-500">
-            Error: Invalid Comic ID
-          </h2>
-          <p className="text-muted-foreground mt-2">
-            The comic ID is missing or invalid.
-          </p>
+          <h2 className="text-xl font-bold text-red-500">Error: Invalid Comic ID</h2>
+          <p className="text-muted-foreground mt-2">The comic ID is missing or invalid.</p>
           <Button className="mt-4" asChild>
             <Link href="/comics">Browse Comics</Link>
           </Button>
         </div>
       </main>
-    );
+    )
   }
 
   return (
     <main className="container mx-auto px-4 py-8">
       <div className="mb-6">
-        <Link
-          href="/comics"
-          className="inline-flex items-center text-muted-foreground hover:text-green-400"
-        >
+        <Link href="/comics" className="inline-flex items-center text-muted-foreground hover:text-green-400">
           <ChevronLeft className="h-4 w-4 mr-1" />
           Back to Comics
         </Link>
@@ -301,5 +262,5 @@ export default function ComicPage({ params }: ComicPageProps) {
         </Suspense>
       </div>
     </main>
-  );
+  )
 }

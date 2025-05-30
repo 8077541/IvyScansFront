@@ -1,46 +1,44 @@
-"use client";
+"use client"
 
-import { useState, useEffect } from "react";
-import { Bookmark, BookmarkCheck, Loader2 } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { useToast } from "@/components/ui/use-toast";
-import { useAuth } from "@/contexts/auth-context";
-import { userService } from "@/lib/api";
+import { useState, useEffect } from "react"
+import { Bookmark, BookmarkCheck, Loader2 } from "lucide-react"
+import { Button } from "@/components/ui/button"
+import { useToast } from "@/components/ui/use-toast"
+import { useAuth } from "@/contexts/auth-context"
+import { userService } from "@/lib/api"
 
 interface BookmarkButtonProps {
-  comicId: string;
+  comicId: string
 }
 
 export function BookmarkButton({ comicId }: BookmarkButtonProps) {
-  const [isBookmarked, setIsBookmarked] = useState(false);
-  const [isLoading, setIsLoading] = useState(true);
-  const [isProcessing, setIsProcessing] = useState(false);
-  const { isAuthenticated, user } = useAuth();
-  const { toast } = useToast();
+  const [isBookmarked, setIsBookmarked] = useState(false)
+  const [isLoading, setIsLoading] = useState(true)
+  const [isProcessing, setIsProcessing] = useState(false)
+  const { isAuthenticated, user } = useAuth()
+  const { toast } = useToast()
 
   // Check if the comic is already bookmarked
   useEffect(() => {
     const checkBookmarkStatus = async () => {
       if (!isAuthenticated) {
-        setIsLoading(false);
-        return;
+        setIsLoading(false)
+        return
       }
 
       try {
-        const bookmarks = await userService.getBookmarks();
-        const isAlreadyBookmarked = bookmarks.some(
-          (bookmark) => bookmark.id === comicId
-        );
-        setIsBookmarked(isAlreadyBookmarked);
+        const bookmarks = await userService.getBookmarks()
+        const isAlreadyBookmarked = bookmarks.some((bookmark) => bookmark.id === comicId)
+        setIsBookmarked(isAlreadyBookmarked)
       } catch (error) {
-        console.error("Error checking bookmark status:", error);
+        console.error("Error checking bookmark status:", error)
       } finally {
-        setIsLoading(false);
+        setIsLoading(false)
       }
-    };
+    }
 
-    checkBookmarkStatus();
-  }, [comicId, isAuthenticated]);
+    checkBookmarkStatus()
+  }, [comicId, isAuthenticated])
 
   const handleToggleBookmark = async () => {
     if (!isAuthenticated) {
@@ -48,41 +46,41 @@ export function BookmarkButton({ comicId }: BookmarkButtonProps) {
         title: "Authentication Required",
         description: "Please sign in to bookmark comics",
         variant: "destructive",
-      });
-      return;
+      })
+      return
     }
 
-    setIsProcessing(true);
+    setIsProcessing(true)
 
     try {
       if (isBookmarked) {
         // Remove bookmark
-        await userService.removeBookmark(comicId);
-        setIsBookmarked(false);
+        await userService.removeBookmark(comicId)
+        setIsBookmarked(false)
         toast({
           title: "Bookmark Removed",
           description: "Comic has been removed from your bookmarks",
-        });
+        })
       } else {
         // Add bookmark
-        await userService.addBookmark(comicId);
-        setIsBookmarked(true);
+        await userService.addBookmark(comicId)
+        setIsBookmarked(true)
         toast({
           title: "Bookmark Added",
           description: "Comic has been added to your bookmarks",
-        });
+        })
       }
     } catch (error) {
-      console.error("Error toggling bookmark:", error);
+      console.error("Error toggling bookmark:", error)
       toast({
         title: "Error",
         description: "Failed to update bookmark. Please try again.",
         variant: "destructive",
-      });
+      })
     } finally {
-      setIsProcessing(false);
+      setIsProcessing(false)
     }
-  };
+  }
 
   if (isLoading) {
     return (
@@ -90,7 +88,7 @@ export function BookmarkButton({ comicId }: BookmarkButtonProps) {
         <Loader2 className="h-4 w-4 mr-2 animate-spin" />
         Loading...
       </Button>
-    );
+    )
   }
 
   return (
@@ -109,5 +107,5 @@ export function BookmarkButton({ comicId }: BookmarkButtonProps) {
       )}
       {isBookmarked ? "Bookmarked" : "Add to Bookmarks"}
     </Button>
-  );
+  )
 }

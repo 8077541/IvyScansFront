@@ -6,21 +6,21 @@
 export function formatDate(dateString: string): string {
   try {
     // Check if the string is a valid date
-    if (!dateString) return "Unknown date";
+    if (!dateString) return "Unknown date"
 
-    const date = new Date(dateString);
+    const date = new Date(dateString)
 
     // Check if date is valid
-    if (isNaN(date.getTime())) return dateString;
+    if (isNaN(date.getTime())) return dateString
 
     return date.toLocaleDateString("en-US", {
       year: "numeric",
       month: "long",
       day: "numeric",
-    });
+    })
   } catch (error) {
-    console.error("Error formatting date:", error);
-    return dateString; // Return original string if parsing fails
+    console.error("Error formatting date:", error)
+    return dateString // Return original string if parsing fails
   }
 }
 
@@ -32,12 +32,12 @@ export function formatDate(dateString: string): string {
 export function formatDateTime(dateString: string): string {
   try {
     // Check if the string is a valid date
-    if (!dateString) return "Unknown date";
+    if (!dateString) return "Unknown date"
 
-    const date = new Date(dateString);
+    const date = new Date(dateString)
 
     // Check if date is valid
-    if (isNaN(date.getTime())) return dateString;
+    if (isNaN(date.getTime())) return dateString
 
     return date.toLocaleDateString("en-US", {
       year: "numeric",
@@ -45,10 +45,10 @@ export function formatDateTime(dateString: string): string {
       day: "numeric",
       hour: "2-digit",
       minute: "2-digit",
-    });
+    })
   } catch (error) {
-    console.error("Error formatting date and time:", error);
-    return dateString; // Return original string if parsing fails
+    console.error("Error formatting date and time:", error)
+    return dateString // Return original string if parsing fails
   }
 }
 
@@ -60,12 +60,9 @@ export function formatDateTime(dateString: string): string {
 export function formatRelativeTime(relativeTimeString: string): string {
   try {
     // If it looks like an ISO date string, format it directly
-    if (
-      relativeTimeString &&
-      (relativeTimeString.includes("T") || relativeTimeString.includes("-"))
-    ) {
+    if (relativeTimeString && (relativeTimeString.includes("T") || relativeTimeString.includes("-"))) {
       try {
-        return formatDate(relativeTimeString);
+        return formatDate(relativeTimeString)
       } catch (e) {
         // If it fails, continue with the rest of the function
       }
@@ -73,29 +70,29 @@ export function formatRelativeTime(relativeTimeString: string): string {
 
     // Try to parse common relative time formats
     if (relativeTimeString.includes("hour")) {
-      return "Today";
+      return "Today"
     } else if (relativeTimeString.includes("day")) {
-      const days = Number.parseInt(relativeTimeString.split(" ")[0]);
-      if (days === 1) return "Yesterday";
-      const date = new Date();
-      date.setDate(date.getDate() - days);
-      return formatDate(date.toISOString());
+      const days = Number.parseInt(relativeTimeString.split(" ")[0])
+      if (days === 1) return "Yesterday"
+      const date = new Date()
+      date.setDate(date.getDate() - days)
+      return formatDate(date.toISOString())
     } else if (relativeTimeString.includes("week")) {
-      const weeks = Number.parseInt(relativeTimeString.split(" ")[0]);
-      const date = new Date();
-      date.setDate(date.getDate() - weeks * 7);
-      return formatDate(date.toISOString());
+      const weeks = Number.parseInt(relativeTimeString.split(" ")[0])
+      const date = new Date()
+      date.setDate(date.getDate() - weeks * 7)
+      return formatDate(date.toISOString())
     } else if (relativeTimeString.includes("month")) {
-      const months = Number.parseInt(relativeTimeString.split(" ")[0]);
-      const date = new Date();
-      date.setMonth(date.getMonth() - months);
-      return formatDate(date.toISOString());
+      const months = Number.parseInt(relativeTimeString.split(" ")[0])
+      const date = new Date()
+      date.setMonth(date.getMonth() - months)
+      return formatDate(date.toISOString())
     }
 
     // If we can't parse it, return the original string
-    return relativeTimeString;
+    return relativeTimeString
   } catch (error) {
-    console.error("Error formatting relative time:", error);
-    return relativeTimeString;
+    console.error("Error formatting relative time:", error)
+    return relativeTimeString
   }
 }

@@ -1,11 +1,11 @@
-"use client";
+"use client"
 
-import type { ReactNode } from "react";
-import { AuthProvider } from "@/contexts/auth-context";
-import { NotificationProvider } from "@/contexts/notification-context";
+import type { ReactNode } from "react"
+import { AuthProvider } from "@/contexts/auth-context"
+import { NotificationProvider } from "@/contexts/notification-context"
 
 interface ProvidersProps {
-  children: ReactNode;
+  children: ReactNode
 }
 
 export function Providers({ children }: ProvidersProps) {
@@ -13,5 +13,5 @@ export function Providers({ children }: ProvidersProps) {
     <AuthProvider>
       <NotificationProvider>{children}</NotificationProvider>
     </AuthProvider>
-  );
+  )
 }
