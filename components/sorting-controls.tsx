@@ -1,45 +1,32 @@
 "use client"
 
-import { ChevronDown } from "lucide-react"
-import { Button } from "@/components/ui/button"
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Label } from "@/components/ui/label"
 
 interface SortingControlsProps {
   sortOption: string
   setSortOption: (option: string) => void
+  disabled?: boolean
 }
 
-export function SortingControls({ sortOption, setSortOption }: SortingControlsProps) {
-  const sortOptions = [
-    { value: "latest", label: "Latest Updates" },
-    { value: "a-z", label: "A-Z" },
-    { value: "z-a", label: "Z-A" },
-  ]
-
-  const currentSortLabel = sortOptions.find((option) => option.value === sortOption)?.label || "Sort By"
-
+export function SortingControls({ sortOption, setSortOption, disabled = false }: SortingControlsProps) {
   return (
-    <div className="flex justify-between items-center">
-      <h2 className="text-lg font-medium">Results</h2>
-      <DropdownMenu>
-        <DropdownMenuTrigger asChild>
-          <Button variant="outline" className="flex items-center gap-2">
-            <span>Sort: {currentSortLabel}</span>
-            <ChevronDown className="h-4 w-4" />
-          </Button>
-        </DropdownMenuTrigger>
-        <DropdownMenuContent align="end">
-          {sortOptions.map((option) => (
-            <DropdownMenuItem
-              key={option.value}
-              onClick={() => setSortOption(option.value)}
-              className={sortOption === option.value ? "bg-secondary" : ""}
-            >
-              {option.label}
-            </DropdownMenuItem>
-          ))}
-        </DropdownMenuContent>
-      </DropdownMenu>
+    <div className="flex items-center gap-4 mb-6">
+      <Label htmlFor="sort-select" className="text-sm font-medium whitespace-nowrap">
+        Sort by:
+      </Label>
+      <Select value={sortOption} onValueChange={setSortOption} disabled={disabled}>
+        <SelectTrigger id="sort-select" className="w-48">
+          <SelectValue />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value="latest">Latest Updates</SelectItem>
+          <SelectItem value="a-z">Title A-Z</SelectItem>
+          <SelectItem value="z-a">Title Z-A</SelectItem>
+          <SelectItem value="rating">Highest Rated</SelectItem>
+          <SelectItem value="popular">Most Popular</SelectItem>
+        </SelectContent>
+      </Select>
     </div>
   )
 }
