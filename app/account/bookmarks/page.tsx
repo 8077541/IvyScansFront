@@ -1,12 +1,12 @@
-"use client";
+"use client"
 
-import { useState, useEffect } from "react";
-import Link from "next/link";
-import Image from "next/image";
-import { Bookmark, Trash2, ExternalLink, Loader2 } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Separator } from "@/components/ui/separator";
-import { Card, CardContent, CardFooter } from "@/components/ui/card";
+import { useState, useEffect } from "react"
+import Link from "next/link"
+import Image from "next/image"
+import { Bookmark, Trash2, ExternalLink, Loader2 } from "lucide-react"
+import { Button } from "@/components/ui/button"
+import { Separator } from "@/components/ui/separator"
+import { Card, CardContent, CardFooter } from "@/components/ui/card"
 import {
   AlertDialog,
   AlertDialogAction,
@@ -17,40 +17,15 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
   AlertDialogTrigger,
-} from "@/components/ui/alert-dialog";
-import { useToast } from "@/components/ui/use-toast";
-import { userService } from "@/lib/api";
-import type { BookmarkedComic } from "@/types";
-import { Skeleton } from "@/components/ui/skeleton";
-
-// Update the formatDate function to be more robust
-function formatDate(dateString: string): string {
-  if (!dateString) return "Unknown date";
-
-  try {
-    // Try to parse the date
-    const date = new Date(dateString);
-
-    // Check if date is valid
-    if (isNaN(date.getTime())) {
-      console.warn("Invalid date:", dateString);
-      return "Unknown date";
-    }
-
-    return date.toLocaleDateString("en-US", {
-      year: "numeric",
-      month: "long",
-      day: "numeric",
-    });
-  } catch (error) {
-    console.error("Error formatting date:", error, dateString);
-    return "Unknown date";
-  }
-}
+} from "@/components/ui/alert-dialog"
+import { useToast } from "@/components/ui/use-toast"
+import { userService } from "@/lib/api"
+import type { BookmarkedComic } from "@/types"
+import { Skeleton } from "@/components/ui/skeleton"
 
 // Add a function to format relative time or timestamps
 function formatTimestamp(timestamp: string): string {
-  if (!timestamp) return "Unknown";
+  if (!timestamp) return "Unknown"
 
   try {
     // Check if it's a relative time string (e.g., "2 hours ago")
@@ -61,31 +36,31 @@ function formatTimestamp(timestamp: string): string {
       timestamp.includes("week") ||
       timestamp.includes("month")
     ) {
-      return timestamp;
+      return timestamp
     }
 
     // Otherwise, try to parse as date
-    const date = new Date(timestamp);
+    const date = new Date(timestamp)
 
     // Check if date is valid
     if (isNaN(date.getTime())) {
-      return timestamp; // Return original if can't parse
+      return timestamp // Return original if can't parse
     }
 
     // If it's today, show time
-    const today = new Date();
+    const today = new Date()
     if (date.toDateString() === today.toDateString()) {
       return `Today at ${date.toLocaleTimeString([], {
         hour: "2-digit",
         minute: "2-digit",
-      })}`;
+      })}`
     }
 
     // If it's yesterday
-    const yesterday = new Date(today);
-    yesterday.setDate(yesterday.getDate() - 1);
+    const yesterday = new Date(today)
+    yesterday.setDate(yesterday.getDate() - 1)
     if (date.toDateString() === yesterday.toDateString()) {
-      return "Yesterday";
+      return "Yesterday"
     }
 
     // Otherwise show date
@@ -93,55 +68,93 @@ function formatTimestamp(timestamp: string): string {
       year: "numeric",
       month: "short",
       day: "numeric",
-    });
+    })
   } catch (error) {
-    console.error("Error formatting timestamp:", error, timestamp);
-    return timestamp; // Return original on error
+    console.error("Error formatting timestamp:", error, timestamp)
+    return timestamp // Return original on error
   }
 }
 
 export default function BookmarksPage() {
-  const [bookmarks, setBookmarks] = useState<BookmarkedComic[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const { toast } = useToast();
+  const [bookmarks, setBookmarks] = useState<BookmarkedComic[]>([])
+  const [isLoading, setIsLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+  const { toast } = useToast()
 
   useEffect(() => {
     const fetchBookmarks = async () => {
       try {
-        setIsLoading(true);
-        const data = await userService.getBookmarks();
-        setBookmarks(data);
-        setError(null);
+        setIsLoading(true)
+        const data = await userService.getBookmarks()
+        // Ensure all bookmarks have proper cover images
+        const processedBookmarks = data.map((bookmark) => ({
+          ...bookmark,
+          cover: bookmark.cover || `/placeholder.svg?height=200&width=150&text=${encodeURIComponent(bookmark.title)}`,
+        }))
+        setBookmarks(processedBookmarks)
+        setError(null)
       } catch (err) {
-        console.error("Error fetching bookmarks:", err);
-        setError("Failed to load bookmarks. Using mock data instead.");
-        setBookmarks([]);
+        console.error("Error fetching bookmarks:", err)
+        setError("Failed to load bookmarks. Using mock data instead.")
+        // Use mock bookmarks as fallback
+        const mockBookmarks: BookmarkedComic[] = [
+          {
+            id: "a23614d2-3b1f-409f-8193-8c35b4d15126",
+            title: "The Amazing Adventures",
+            cover: "/placeholder.svg?height=200&width=150&text=Amazing%20Adventures",
+            genres: ["Action", "Adventure", "Fantasy"],
+            latestChapter: "Chapter 25",
+            lastReadChapter: 20,
+            updatedAt: "2 hours ago",
+            dateAdded: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(),
+          },
+          {
+            id: "b34725e3-4c2g-510g-9204-9d46c5e26237",
+            title: "Mystery Chronicles",
+            cover: "/placeholder.svg?height=200&width=150&text=Mystery%20Chronicles",
+            genres: ["Mystery", "Thriller", "Drama"],
+            latestChapter: "Chapter 18",
+            lastReadChapter: 15,
+            updatedAt: "1 day ago",
+            dateAdded: new Date(Date.now() - 14 * 24 * 60 * 60 * 1000).toISOString(),
+          },
+          {
+            id: "c45836f4-5d3h-621h-0315-0e57d6f37348",
+            title: "Space Odyssey",
+            cover: "/placeholder.svg?height=200&width=150&text=Space%20Odyssey",
+            genres: ["Sci-Fi", "Adventure", "Action"],
+            latestChapter: "Chapter 30",
+            lastReadChapter: 28,
+            updatedAt: "3 days ago",
+            dateAdded: new Date(Date.now() - 21 * 24 * 60 * 60 * 1000).toISOString(),
+          },
+        ]
+        setBookmarks(mockBookmarks)
       } finally {
-        setIsLoading(false);
+        setIsLoading(false)
       }
-    };
+    }
 
-    fetchBookmarks();
-  }, []);
+    fetchBookmarks()
+  }, [])
 
   const removeBookmark = async (id: string) => {
     try {
-      await userService.removeBookmark(id);
-      setBookmarks(bookmarks.filter((bookmark) => bookmark.id !== id));
+      await userService.removeBookmark(id)
+      setBookmarks(bookmarks.filter((bookmark) => bookmark.id !== id))
       toast({
         title: "Bookmark Removed",
         description: "Comic has been removed from your bookmarks",
-      });
+      })
     } catch (error) {
-      console.error("Error removing bookmark:", error);
+      console.error("Error removing bookmark:", error)
       toast({
         title: "Error",
         description: "Failed to remove bookmark. Please try again.",
         variant: "destructive",
-      });
+      })
     }
-  };
+  }
 
   if (isLoading) {
     return (
@@ -149,8 +162,7 @@ export default function BookmarksPage() {
         <div>
           <h1 className="text-2xl font-bold tracking-tight">My Bookmarks</h1>
           <p className="text-muted-foreground">
-            Manage your bookmarked comics and continue reading where you left
-            off.
+            Manage your bookmarked comics and continue reading where you left off.
           </p>
         </div>
         <Separator />
@@ -162,33 +174,25 @@ export default function BookmarksPage() {
             ))}
         </div>
       </div>
-    );
+    )
   }
 
   return (
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-bold tracking-tight">My Bookmarks</h1>
-        <p className="text-muted-foreground">
-          Manage your bookmarked comics and continue reading where you left off.
-        </p>
+        <p className="text-muted-foreground">Manage your bookmarked comics and continue reading where you left off.</p>
       </div>
       <Separator />
 
       {error && (
-        <div className="bg-yellow-500/10 border border-yellow-500/50 text-yellow-500 p-4 rounded-md mb-4">
-          {error}
-        </div>
+        <div className="bg-yellow-500/10 border border-yellow-500/50 text-yellow-500 p-4 rounded-md mb-4">{error}</div>
       )}
 
       {bookmarks.length > 0 ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {bookmarks.map((comic) => (
-            <BookmarkCard
-              key={comic.id}
-              comic={comic}
-              onRemove={removeBookmark}
-            />
+            <BookmarkCard key={comic.id} comic={comic} onRemove={removeBookmark} />
           ))}
         </div>
       ) : (
@@ -198,39 +202,35 @@ export default function BookmarksPage() {
           <p className="text-muted-foreground mb-4">
             Start exploring comics and bookmark your favorites to read later.
           </p>
-          <Button
-            asChild
-            className="bg-green-400 hover:bg-green-500 glow-green"
-          >
+          <Button asChild className="bg-green-400 hover:bg-green-500 glow-green">
             <Link href="/comics">Browse Comics</Link>
           </Button>
         </div>
       )}
     </div>
-  );
+  )
 }
 
 function BookmarkCard({
   comic,
   onRemove,
 }: {
-  comic: BookmarkedComic;
-  onRemove: (id: string) => void;
+  comic: BookmarkedComic
+  onRemove: (id: string) => void
 }) {
-  const [isRemoving, setIsRemoving] = useState(false);
-  const latestChapterNum = Number(comic.latestChapter?.split(" ")[1] || 0);
-  const hasNewChapters =
-    comic.lastReadChapter && comic.lastReadChapter < latestChapterNum;
-  const newChaptersCount = latestChapterNum - (comic.lastReadChapter || 0);
+  const [isRemoving, setIsRemoving] = useState(false)
+  const latestChapterNum = Number(comic.latestChapter?.split(" ")[1] || 0)
+  const hasNewChapters = comic.lastReadChapter && comic.lastReadChapter < latestChapterNum
+  const newChaptersCount = latestChapterNum - (comic.lastReadChapter || 0)
 
   const handleRemove = async () => {
-    setIsRemoving(true);
+    setIsRemoving(true)
     try {
-      await onRemove(comic.id);
+      await onRemove(comic.id)
     } finally {
-      setIsRemoving(false);
+      setIsRemoving(false)
     }
-  };
+  }
 
   return (
     <Card className="overflow-hidden h-full transition-all duration-200 hover:shadow-md hover:shadow-green-500/10 hover:border-green-500/50">
@@ -242,6 +242,10 @@ function BookmarkCard({
             fill
             className="object-cover"
             sizes="(max-width: 768px) 33vw, 20vw"
+            onError={(e) => {
+              const target = e.target as HTMLImageElement
+              target.src = `/placeholder.svg?height=200&width=150&text=${encodeURIComponent(comic.title)}`
+            }}
           />
           {hasNewChapters && (
             <div className="absolute top-2 right-2">
@@ -273,11 +277,8 @@ function BookmarkCard({
             </div>
             <div className="text-xs text-muted-foreground space-y-1">
               <p>Latest: {comic.latestChapter || "Unknown"}</p>
-              {comic.lastReadChapter && (
-                <p>Last Read: Chapter {comic.lastReadChapter}</p>
-              )}
+              {comic.lastReadChapter && <p>Last Read: Chapter {comic.lastReadChapter}</p>}
               <p>Updated: {formatTimestamp(comic.updatedAt)}</p>
-              <p>Added: {formatDate(comic.dateAdded)}</p>
             </div>
           </CardContent>
           <CardFooter className="p-4 pt-0 flex justify-between">
@@ -289,11 +290,7 @@ function BookmarkCard({
                   className="text-red-500 hover:text-red-600 hover:bg-red-500/10"
                   disabled={isRemoving}
                 >
-                  {isRemoving ? (
-                    <Loader2 className="h-4 w-4 mr-1 animate-spin" />
-                  ) : (
-                    <Trash2 className="h-4 w-4 mr-1" />
-                  )}
+                  {isRemoving ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <Trash2 className="h-4 w-4 mr-1" />}
                   Remove
                 </Button>
               </AlertDialogTrigger>
@@ -301,32 +298,20 @@ function BookmarkCard({
                 <AlertDialogHeader>
                   <AlertDialogTitle>Remove Bookmark</AlertDialogTitle>
                   <AlertDialogDescription>
-                    Are you sure you want to remove "{comic.title}" from your
-                    bookmarks? This action cannot be undone.
+                    Are you sure you want to remove "{comic.title}" from your bookmarks? This action cannot be undone.
                   </AlertDialogDescription>
                 </AlertDialogHeader>
                 <AlertDialogFooter>
                   <AlertDialogCancel>Cancel</AlertDialogCancel>
-                  <AlertDialogAction
-                    className="bg-red-500 hover:bg-red-600"
-                    onClick={handleRemove}
-                  >
+                  <AlertDialogAction className="bg-red-500 hover:bg-red-600" onClick={handleRemove}>
                     Remove
                   </AlertDialogAction>
                 </AlertDialogFooter>
               </AlertDialogContent>
             </AlertDialog>
 
-            <Button
-              asChild
-              size="sm"
-              className="bg-green-400 hover:bg-green-500"
-            >
-              <Link
-                href={`/comics/${comic.id}/chapters/${
-                  comic.lastReadChapter ? comic.lastReadChapter + 1 : 1
-                }`}
-              >
+            <Button asChild size="sm" className="bg-green-400 hover:bg-green-500">
+              <Link href={`/comics/${comic.id}/chapters/${comic.lastReadChapter ? comic.lastReadChapter + 1 : 1}`}>
                 <ExternalLink className="h-4 w-4 mr-1" />
                 Continue
               </Link>
@@ -335,5 +320,5 @@ function BookmarkCard({
         </div>
       </div>
     </Card>
-  );
+  )
 }

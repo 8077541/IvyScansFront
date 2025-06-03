@@ -1,457 +1,215 @@
-"use client";
+"use client"
 
-import { useState, useEffect } from "react";
-import Link from "next/link";
-import Image from "next/image";
-import {
-  ChevronLeft,
-  ChevronRight,
-  Settings,
-  ArrowUp,
-  Maximize,
-  Minimize,
-} from "lucide-react";
-import { Button } from "@/components/ui/button";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import { Skeleton } from "@/components/ui/skeleton";
-import { comicService, userService } from "@/lib/api";
-import { useAuth } from "@/contexts/auth-context";
-import { useToast } from "@/components/ui/use-toast";
-import { Progress } from "@/components/ui/progress";
+import { useEffect, useMemo } from "react"
+import Link from "next/link"
+import Image from "next/image"
+import { ChevronLeft, ChevronRight, Home, BookOpen } from "lucide-react"
+import { Button } from "@/components/ui/button"
+import { Badge } from "@/components/ui/badge"
+import { comicService, userService } from "@/lib/api"
+import { useApi } from "@/hooks/use-api"
+import { ErrorFallback } from "@/components/error-fallback"
+import { LoadingFallback } from "@/components/loading-fallback"
 
 interface ChapterPageProps {
   params: {
-    id: string;
-    chapter: string;
-  };
+    id: string
+    chapter: string
+  }
 }
 
 export default function ChapterPage({ params }: ChapterPageProps) {
-  // Define state for params to handle the Promise
-  const [comicId, setComicId] = useState<string>("");
-  const [chapterParam, setChapterParam] = useState<string>("");
-  const [chapterNumber, setChapterNumber] = useState<number>(0);
+  // Access params directly since this is a client component
+  const comicId = params.id
+  const chapterParam = params.chapter
 
-  // Define all state hooks at the top level
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [chapterData, setChapterData] = useState<{
-    images: string[];
-    title?: string;
-    number: number;
-    totalChapters?: number;
-    id?: string; // Changed from chapterId to id to match API response
-  } | null>(null);
-  const [prevChapter, setPrevChapter] = useState<number | null>(null);
-  const [nextChapter, setNextChapter] = useState<number | null>(null);
-  const [showControls, setShowControls] = useState(true);
-  const [isScrollingUp, setIsScrollingUp] = useState(false);
-  const [lastScrollY, setLastScrollY] = useState(0);
-  const [isFullscreen, setIsFullscreen] = useState(false);
-  const [imageQuality, setImageQuality] = useState("high");
-  const [readingDirection, setReadingDirection] = useState("vertical");
-  const [comicTitle, setComicTitle] = useState("");
-  const [historyRecorded, setHistoryRecorded] = useState(false);
-  const [isValidParams, setIsValidParams] = useState(false);
-
-  // Get auth and toast hooks
-  const { isAuthenticated } = useAuth();
-  const { toast } = useToast();
-
-  // Handle params Promise
-  useEffect(() => {
-    const resolveParams = async () => {
-      try {
-        // Handle params as a Promise
-        const resolvedParams = await Promise.resolve(params);
-        const id = resolvedParams?.id || "";
-        const chapter = resolvedParams?.chapter || "";
-        const chapterNum = Number.parseInt(chapter) || 0;
-
-        setComicId(id);
-        setChapterParam(chapter);
-        setChapterNumber(chapterNum);
-        setIsValidParams(Boolean(id && chapter && !isNaN(chapterNum)));
-      } catch (err) {
-        console.error("Error resolving params:", err);
-        setError("Invalid route parameters");
-        setIsValidParams(false);
-      }
-    };
-
-    resolveParams();
-  }, [params]);
-
-  // Fetch comic title for reading history
-  useEffect(() => {
-    const fetchComicTitle = async () => {
-      if (!isValidParams || !comicId) return;
-
-      try {
-        const comic = await comicService.getComicById(comicId);
-        setComicTitle(comic.title);
-      } catch (err) {
-        console.error("Error fetching comic title:", err);
-      }
-    };
-
-    if (comicId) {
-      fetchComicTitle();
-    }
-  }, [comicId, isValidParams]);
-
-  // Record reading history
-  useEffect(() => {
-    const recordReadingHistory = async () => {
-      // Skip if already recorded, not authenticated, or missing data
-      if (
-        historyRecorded ||
-        !isAuthenticated ||
-        !isValidParams ||
-        !comicId ||
-        !comicTitle
-      )
-        return;
-
-      try {
-        // Use the id from the API response if available, otherwise fall back to the chapter parameter
-        const actualChapterId = chapterData?.id || chapterParam;
-
-        await userService.addToHistory(comicId, actualChapterId, chapterNumber);
-        setHistoryRecorded(true);
-        console.log(
-          "Reading history recorded:",
-          comicId,
-          actualChapterId,
-          chapterNumber
-        );
-
-        // Show toast notification
-        toast({
-          title: "Reading Progress Saved",
-          description: `Your progress for ${comicTitle} Chapter ${chapterNumber} has been saved.`,
-          variant: "default",
-        });
-      } catch (err) {
-        console.error("Failed to record reading history:", err);
-      }
-    };
-
-    if (comicId && comicTitle && chapterData) {
-      recordReadingHistory();
-    }
-  }, [
-    isAuthenticated,
-    comicId,
-    chapterParam,
-    chapterNumber,
-    comicTitle,
-    historyRecorded,
-    toast,
-    isValidParams,
-    chapterData,
-  ]);
+  // Memoize chapter number to prevent unnecessary re-computations
+  const chapterNumber = useMemo(() => {
+    const num = Number.parseInt(chapterParam, 10)
+    return isNaN(num) ? 1 : num
+  }, [chapterParam])
 
   // Fetch chapter data
+  const {
+    data: chapterData,
+    loading: chapterLoading,
+    error: chapterError,
+    retry: retryChapter,
+    retryCount: chapterRetryCount,
+  } = useApi(() => comicService.getChapter(comicId, chapterNumber), [comicId, chapterNumber], {
+    retryLimit: 2,
+    retryDelay: 1000,
+  })
+
+  // Fetch comic details for navigation
+  const {
+    data: comic,
+    loading: comicLoading,
+    error: comicError,
+    retry: retryComic,
+  } = useApi(() => comicService.getComicById(comicId), [comicId], { retryLimit: 2, retryDelay: 1000 })
+
+  // Add to reading history when chapter loads successfully
   useEffect(() => {
-    const fetchChapterData = async () => {
-      // Skip fetching if parameters are invalid
-      if (!isValidParams || !comicId) {
-        setError("Invalid comic ID or chapter number");
-        setIsLoading(false);
-        return;
-      }
-
-      setIsLoading(true);
-      try {
-        const data = await comicService.getChapter(comicId, chapterParam);
-        setChapterData(data);
-
-        // Determine prev/next chapters
-        const chapters = await comicService.getComicChapters(comicId);
-        if (chapters) {
-          const chapterNumbers = chapters
-            .map((c) => c.number)
-            .sort((a, b) => a - b);
-          const currentIndex = chapterNumbers.indexOf(chapterNumber);
-
-          setPrevChapter(
-            currentIndex > 0 ? chapterNumbers[currentIndex - 1] : null
-          );
-          setNextChapter(
-            currentIndex < chapterNumbers.length - 1
-              ? chapterNumbers[currentIndex + 1]
-              : null
-          );
-        }
-
-        setError(null);
-      } catch (err) {
-        console.error("Error fetching chapter:", err);
-        setError("Failed to load chapter. Please try again later.");
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    if (comicId && chapterParam) {
-      fetchChapterData();
-      // Reset history recorded state when chapter changes
-      setHistoryRecorded(false);
-    }
-  }, [comicId, chapterNumber, isValidParams, chapterParam]);
-
-  // Handle scroll events
-  useEffect(() => {
-    const handleScroll = () => {
-      const currentScrollY = window.scrollY;
-
-      // Show controls when scrolling up
-      if (currentScrollY < lastScrollY) {
-        setIsScrollingUp(true);
-        setShowControls(true);
-      } else {
-        setIsScrollingUp(false);
-        // Hide controls after scrolling down a bit
-        if (currentScrollY > 100 && currentScrollY > lastScrollY + 30) {
-          setShowControls(false);
+    if (chapterData && comic) {
+      const addToHistory = async () => {
+        try {
+          await userService.addToHistory(comicId, chapterData.id || `chapter-${chapterNumber}`, chapterNumber)
+        } catch (error) {
+          console.error("Failed to add to reading history:", error)
+          // Don't show error to user for history tracking failures
         }
       }
 
-      setLastScrollY(currentScrollY);
-    };
-
-    window.addEventListener("scroll", handleScroll, { passive: true });
-    return () => window.removeEventListener("scroll", handleScroll);
-  }, [lastScrollY]);
-
-  // Helper functions
-  const scrollToTop = () => {
-    window.scrollTo({ top: 0, behavior: "smooth" });
-  };
-
-  const toggleFullscreen = () => {
-    if (!document.fullscreenElement) {
-      document.documentElement.requestFullscreen().catch((err) => {
-        console.error(`Error attempting to enable fullscreen: ${err.message}`);
-      });
-      setIsFullscreen(true);
-    } else {
-      if (document.exitFullscreen) {
-        document.exitFullscreen();
-        setIsFullscreen(false);
-      }
+      addToHistory()
     }
-  };
+  }, [chapterData, comic, comicId, chapterNumber])
 
-  // If parameters are invalid, show an error message
-  if (!isValidParams) {
+  // Show loading state
+  if (chapterLoading || comicLoading) {
     return (
-      <main className="reading-container">
-        <div className="container mx-auto px-4 py-20 flex flex-col items-center justify-center min-h-[50vh]">
-          <h1 className="text-2xl font-bold text-red-500 mb-4">
-            Error: Invalid Parameters
-          </h1>
-          <p className="text-muted-foreground mb-6">
-            The comic ID or chapter number is missing or invalid.
-          </p>
-          <Button asChild>
-            <Link href="/comics">Browse Comics</Link>
+      <main className="container mx-auto px-4 py-8">
+        <LoadingFallback type="card" message="Loading chapter..." />
+      </main>
+    )
+  }
+
+  // Show error state
+  if (chapterError || comicError) {
+    return (
+      <main className="container mx-auto px-4 py-8">
+        <ErrorFallback
+          error={chapterError || comicError || "Failed to load chapter"}
+          onRetry={chapterError ? retryChapter : retryComic}
+          retryCount={chapterRetryCount}
+          maxRetries={2}
+        />
+      </main>
+    )
+  }
+
+  // Show not found state
+  if (!chapterData || !comic) {
+    return (
+      <main className="container mx-auto px-4 py-8">
+        <div className="text-center py-8">
+          <h2 className="text-xl font-bold text-red-500">Chapter Not Found</h2>
+          <p className="text-muted-foreground mt-2">The requested chapter could not be found.</p>
+          <Button className="mt-4" asChild>
+            <Link href={`/comics/${comicId}`}>Back to Comic</Link>
           </Button>
         </div>
       </main>
-    );
+    )
   }
 
+  const prevChapter = chapterNumber > 1 ? chapterNumber - 1 : null
+  const nextChapter = chapterNumber < (chapterData.totalChapters || 999) ? chapterNumber + 1 : null
+
   return (
-    <main className="reading-container">
-      {/* Navigation controls */}
-      <div
-        className={`fixed top-0 left-0 right-0 z-50 bg-background/95 backdrop-blur transition-transform duration-300 ${
-          showControls ? "translate-y-0" : "-translate-y-full"
-        }`}
-      >
-        <div className="container mx-auto px-4 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <Link
-              href={`/comics/${comicId}`}
-              className="inline-flex items-center text-muted-foreground hover:text-green-400"
-            >
-              <ChevronLeft className="h-4 w-4 mr-1" />
-              Back to Comic
-            </Link>
-            <h1 className="text-lg font-medium hidden md:block">
-              {comicTitle && `${comicTitle} - `}
-              Chapter {chapterParam}
-              {chapterData?.title && ` - ${chapterData.title}`}
-            </h1>
-            {chapterData && (
-              <div className="hidden md:flex items-center gap-2 ml-4 flex-1 max-w-md">
-                <span className="text-xs text-muted-foreground">Progress:</span>
-                <Progress
-                  value={
-                    (chapterNumber / (chapterData.totalChapters || 10)) * 100
-                  }
-                  className="h-2"
-                />
-                <span className="text-xs text-muted-foreground">
-                  {chapterNumber}/{chapterData.totalChapters || 10}
-                </span>
-              </div>
-            )}
-          </div>
-
-          <div className="flex items-center gap-2">
-            {prevChapter && (
-              <Link href={`/comics/${comicId}/chapters/${prevChapter}`}>
-                <Button variant="outline" size="sm" className="gap-1">
-                  <ChevronLeft className="h-4 w-4" />
-                  <span className="hidden sm:inline">Previous</span>
-                </Button>
+    <main className="min-h-screen bg-black text-white">
+      {/* Header */}
+      <header className="sticky top-0 z-10 bg-black/90 backdrop-blur-sm border-b border-gray-800">
+        <div className="container mx-auto px-4 py-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-4">
+              <Link href="/" className="text-gray-400 hover:text-white transition-colors">
+                <Home className="h-5 w-5" />
               </Link>
-            )}
-
-            {nextChapter && (
-              <Link href={`/comics/${comicId}/chapters/${nextChapter}`}>
-                <Button variant="outline" size="sm" className="gap-1">
-                  <span className="hidden sm:inline">Next</span>
-                  <ChevronRight className="h-4 w-4" />
-                </Button>
+              <ChevronRight className="h-4 w-4 text-gray-600" />
+              <Link
+                href={`/comics/${comicId}`}
+                className="text-gray-400 hover:text-white transition-colors truncate max-w-[200px]"
+              >
+                {comic.title}
               </Link>
-            )}
+              <ChevronRight className="h-4 w-4 text-gray-600" />
+              <Badge variant="outline" className="text-white border-gray-600">
+                Chapter {chapterNumber}
+              </Badge>
+            </div>
 
-            <Button variant="ghost" size="icon" onClick={toggleFullscreen}>
-              {isFullscreen ? (
-                <Minimize className="h-5 w-5" />
-              ) : (
-                <Maximize className="h-5 w-5" />
+            <div className="flex items-center space-x-2">
+              {prevChapter && (
+                <Button variant="outline" size="sm" asChild>
+                  <Link href={`/comics/${comicId}/chapters/${prevChapter}`}>
+                    <ChevronLeft className="h-4 w-4 mr-1" />
+                    Prev
+                  </Link>
+                </Button>
               )}
-              <span className="sr-only">
-                {isFullscreen ? "Exit Fullscreen" : "Enter Fullscreen"}
-              </span>
-            </Button>
-
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="icon">
-                  <Settings className="h-5 w-5" />
-                  <span className="sr-only">Settings</span>
+              {nextChapter && (
+                <Button variant="outline" size="sm" asChild>
+                  <Link href={`/comics/${comicId}/chapters/${nextChapter}`}>
+                    Next
+                    <ChevronRight className="h-4 w-4 ml-1" />
+                  </Link>
                 </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                <DropdownMenuItem
-                  onClick={() =>
-                    setReadingDirection(
-                      readingDirection === "vertical"
-                        ? "horizontal"
-                        : "vertical"
-                    )
-                  }
-                >
-                  Reading Direction:{" "}
-                  {readingDirection === "vertical"
-                    ? "Vertical"
-                    : readingDirection === "horizontal"
-                    ? "Horizontal"
-                    : "Unknown"}
-                </DropdownMenuItem>
-                <DropdownMenuItem
-                  onClick={() =>
-                    setImageQuality(imageQuality === "high" ? "medium" : "high")
-                  }
-                >
-                  Image Quality: {imageQuality === "high" ? "High" : "Medium"}
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
+              )}
+            </div>
           </div>
         </div>
-      </div>
+      </header>
 
-      {/* Comic reader */}
-      <div className="container mx-auto px-0 md:px-4 pt-20 pb-20 comic-reader">
-        {isLoading ? (
-          <div className="flex flex-col items-center gap-4">
-            {Array(5)
-              .fill(0)
-              .map((_, index) => (
-                <Skeleton key={index} className="w-full max-w-3xl h-[600px]" />
-              ))}
+      {/* Chapter Content */}
+      <div className="container mx-auto px-4 py-8">
+        <div className="max-w-4xl mx-auto">
+          {/* Chapter Title */}
+          <div className="text-center mb-8">
+            <h1 className="text-3xl font-bold mb-2">{chapterData.title || `Chapter ${chapterNumber}`}</h1>
+            <p className="text-gray-400">{comic.title}</p>
           </div>
-        ) : error ? (
-          <div className="flex items-center justify-center h-[50vh]">
-            <p className="text-red-500">{error}</p>
-          </div>
-        ) : (
-          <div
-            className={`flex ${
-              readingDirection === "vertical"
-                ? "flex-col"
-                : "flex-row overflow-x-auto"
-            } items-center gap-1`}
-          >
-            {chapterData?.images.map((image, index) => (
-              <div
-                key={index}
-                className={`${
-                  readingDirection === "vertical"
-                    ? "w-full max-w-3xl"
-                    : "min-w-fit"
-                }`}
-              >
+
+          {/* Chapter Images */}
+          <div className="space-y-2">
+            {chapterData.images.map((image, index) => (
+              <div key={index} className="relative w-full">
                 <Image
                   src={image || "/placeholder.svg"}
                   alt={`Page ${index + 1}`}
                   width={800}
                   height={1200}
                   className="w-full h-auto"
-                  priority={index < 2}
-                  sizes="(max-width: 768px) 100vw, 800px"
-                  quality={imageQuality === "high" ? 100 : 75}
+                  priority={index < 3} // Prioritize first 3 images
+                  loading={index < 3 ? "eager" : "lazy"}
                 />
               </div>
             ))}
           </div>
-        )}
-      </div>
 
-      {/* Bottom navigation */}
-      <div className="fixed bottom-0 left-0 right-0 bg-background/95 backdrop-blur z-50">
-        <div className="container mx-auto px-4 py-4 flex items-center justify-between">
-          {prevChapter && (
-            <Link href={`/comics/${comicId}/chapters/${prevChapter}`}>
-              <Button variant="outline" size="sm" className="gap-1">
-                <ChevronLeft className="h-4 w-4" />
-                Previous Chapter
+          {/* Navigation Footer */}
+          <div className="flex justify-between items-center mt-8 pt-8 border-t border-gray-800">
+            {prevChapter ? (
+              <Button variant="outline" asChild>
+                <Link href={`/comics/${comicId}/chapters/${prevChapter}`}>
+                  <ChevronLeft className="h-4 w-4 mr-2" />
+                  Previous Chapter
+                </Link>
               </Button>
-            </Link>
-          )}
+            ) : (
+              <div />
+            )}
 
-          <Button
-            variant="secondary"
-            size="icon"
-            onClick={scrollToTop}
-            className="rounded-full"
-          >
-            <ArrowUp className="h-4 w-4" />
-            <span className="sr-only">Scroll to top</span>
-          </Button>
+            <Button variant="outline" asChild>
+              <Link href={`/comics/${comicId}`}>
+                <BookOpen className="h-4 w-4 mr-2" />
+                All Chapters
+              </Link>
+            </Button>
 
-          {nextChapter && (
-            <Link href={`/comics/${comicId}/chapters/${nextChapter}`}>
-              <Button variant="outline" size="sm" className="gap-1">
-                Next Chapter
-                <ChevronRight className="h-4 w-4" />
+            {nextChapter ? (
+              <Button variant="outline" asChild>
+                <Link href={`/comics/${comicId}/chapters/${nextChapter}`}>
+                  Next Chapter
+                  <ChevronRight className="h-4 w-4 ml-2" />
+                </Link>
               </Button>
-            </Link>
-          )}
+            ) : (
+              <div />
+            )}
+          </div>
         </div>
       </div>
     </main>
-  );
+  )
 }

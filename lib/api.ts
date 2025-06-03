@@ -1,6 +1,31 @@
 import { API_BASE_URL, AUTH_ENDPOINTS, COMIC_ENDPOINTS, USER_ENDPOINTS, USE_MOCK_API } from "./config"
 import type { Comic, User, BookmarkedComic, RatedComic, ReadingHistoryItem } from "@/types"
-import { mockBookmarks, mockUser, mockRatings, mockReadingHistory } from "./mock-data"
+
+// In-memory cache to prevent duplicate requests
+const cache = new Map<string, { data: any; timestamp: number; ttl: number }>()
+
+// Cache TTL in milliseconds
+const CACHE_TTL = {
+  FEATURED: 5 * 60 * 1000, // 5 minutes
+  LATEST: 2 * 60 * 1000, // 2 minutes
+  GENRES: 10 * 60 * 1000, // 10 minutes
+  COMICS: 5 * 60 * 1000, // 5 minutes
+}
+
+// Helper function to get cached data
+function getCachedData<T>(key: string): T | null {
+  const cached = cache.get(key)
+  if (cached && Date.now() - cached.timestamp < cached.ttl) {
+    return cached.data
+  }
+  cache.delete(key)
+  return null
+}
+
+// Helper function to set cached data
+function setCachedData<T>(key: string, data: T, ttl: number): void {
+  cache.set(key, { data, timestamp: Date.now(), ttl })
+}
 
 // Mock data for when API is unavailable
 const mockComics: Comic[] = [
@@ -187,6 +212,15 @@ export const comicService = {
     genres?: string[]
     status?: string
   }): Promise<{ comics: Comic[]; total: number; totalPages: number }> {
+    // Create cache key
+    const cacheKey = `comics-${JSON.stringify(params)}`
+
+    // Check cache first
+    const cachedData = getCachedData<{ comics: Comic[]; total: number; totalPages: number }>(cacheKey)
+    if (cachedData) {
+      return cachedData
+    }
+
     // Use mock data if flag is set
     if (USE_MOCK_API) {
       await delay(500) // Simulate network delay
@@ -233,11 +267,15 @@ export const comicService = {
       const end = start + limit
       const paginatedComics = filteredComics.slice(start, end)
 
-      return {
+      const result = {
         comics: paginatedComics,
         total: filteredComics.length,
         totalPages: Math.ceil(filteredComics.length / limit),
       }
+
+      // Cache the result
+      setCachedData(cacheKey, result, CACHE_TTL.COMICS)
+      return result
     }
 
     try {
@@ -261,24 +299,35 @@ export const comicService = {
         cache: process.env.NODE_ENV === "development" ? "no-store" : "default",
       })
 
-      return handleResponse(response)
+      const result = await handleResponse<{ comics: Comic[]; total: number; totalPages: number }>(response)
+
+      // Cache the result
+      setCachedData(cacheKey, result, CACHE_TTL.COMICS)
+      return result
     } catch (error) {
       console.error("Error fetching comics:", error)
-
-      // Fall back to mock data if real API fails
-      console.warn("Falling back to mock data for comics")
-      return this.getAllComics(params)
+      throw error // Don't fall back to mock data, let the error bubble up
     }
   },
 
   // Get featured comics
   async getFeaturedComics(): Promise<Comic[]> {
+    const cacheKey = "featured-comics"
+
+    // Check cache first
+    const cachedData = getCachedData<Comic[]>(cacheKey)
+    if (cachedData) {
+      return cachedData
+    }
+
     if (USE_MOCK_API) {
       await delay(300)
       logApiCall("GET", "MOCK /comics/featured")
 
       // Filter comics by featured property instead of just taking the first 6
-      return mockComics.filter((comic) => comic.isFeatured === true)
+      const result = mockComics.filter((comic) => comic.isFeatured === true)
+      setCachedData(cacheKey, result, CACHE_TTL.FEATURED)
+      return result
     }
 
     try {
@@ -290,27 +339,37 @@ export const comicService = {
         cache: process.env.NODE_ENV === "development" ? "no-store" : "default",
       })
 
-      return handleResponse(response)
+      const result = await handleResponse<Comic[]>(response)
+      setCachedData(cacheKey, result, CACHE_TTL.FEATURED)
+      return result
     } catch (error) {
       console.error("Error fetching featured comics:", error)
-      console.warn("Falling back to mock data for featured comics")
-
-      // Filter comics by featured property in the fallback case too
-      return mockComics.filter((comic) => comic.isFeatured === true)
+      throw error // Don't fall back to mock data, let the error bubble up
     }
   },
 
   // Get latest comics
   async getLatestComics(page = 1, limit = 12): Promise<{ comics: Comic[]; total: number; totalPages: number }> {
+    const cacheKey = `latest-comics-${page}-${limit}`
+
+    // Check cache first
+    const cachedData = getCachedData<{ comics: Comic[]; total: number; totalPages: number }>(cacheKey)
+    if (cachedData) {
+      return cachedData
+    }
+
     if (USE_MOCK_API) {
       await delay(300)
       logApiCall("GET", `MOCK /comics/latest?page=${page}&limit=${limit}`)
 
-      return {
+      const result = {
         comics: mockComics.slice(0, limit),
         total: mockComics.length,
         totalPages: Math.ceil(mockComics.length / limit),
       }
+
+      setCachedData(cacheKey, result, CACHE_TTL.LATEST)
+      return result
     }
 
     try {
@@ -323,16 +382,12 @@ export const comicService = {
         cache: process.env.NODE_ENV === "development" ? "no-store" : "default",
       })
 
-      return handleResponse(response)
+      const result = await handleResponse<{ comics: Comic[]; total: number; totalPages: number }>(response)
+      setCachedData(cacheKey, result, CACHE_TTL.LATEST)
+      return result
     } catch (error) {
       console.error("Error fetching latest comics:", error)
-      console.warn("Falling back to mock data for latest comics")
-
-      return {
-        comics: mockComics.slice(0, limit),
-        total: mockComics.length,
-        totalPages: Math.ceil(mockComics.length / limit),
-      }
+      throw error // Don't fall back to mock data, let the error bubble up
     }
   },
 
@@ -343,23 +398,15 @@ export const comicService = {
       validateParam(id, "comicId")
     } catch (error) {
       console.error("Invalid comic ID:", error)
-      // Return a default comic if in mock mode
-      if (USE_MOCK_API) {
-        await delay(300)
-        logApiCall("GET", `MOCK /comics/[invalid-id]`)
-        return {
-          ...mockComics[0],
-          id: "default",
-          title: "Error: Invalid Comic ID",
-          description: "This is a fallback comic due to an invalid ID being provided.",
-          author: "System",
-          artist: "System",
-          released: "N/A",
-          chapters: [],
-          isFeatured: false,
-        }
-      }
       throw error
+    }
+
+    const cacheKey = `comic-${id}`
+
+    // Check cache first
+    const cachedData = getCachedData<Comic>(cacheKey)
+    if (cachedData) {
+      return cachedData
     }
 
     if (USE_MOCK_API) {
@@ -367,7 +414,7 @@ export const comicService = {
       logApiCall("GET", `MOCK /comics/${id}`)
 
       const comic = mockComics.find((c) => c.id === id) || mockComics[0]
-      return {
+      const result = {
         ...comic,
         description: "This is a mock description for the comic. The actual API is currently unavailable.",
         author: "Mock Author",
@@ -379,6 +426,9 @@ export const comicService = {
           date: `${10 - i} days ago`,
         })),
       }
+
+      setCachedData(cacheKey, result, CACHE_TTL.COMICS)
+      return result
     }
 
     try {
@@ -390,24 +440,12 @@ export const comicService = {
         cache: process.env.NODE_ENV === "development" ? "no-store" : "default",
       })
 
-      return handleResponse(response)
+      const result = await handleResponse<Comic>(response)
+      setCachedData(cacheKey, result, CACHE_TTL.COMICS)
+      return result
     } catch (error) {
       console.error("Error fetching comic details:", error)
-      console.warn("Falling back to mock data for comic details")
-
-      const comic = mockComics.find((c) => c.id === id) || mockComics[0]
-      return {
-        ...comic,
-        description: "This is a mock description for the comic. The actual API is currently unavailable.",
-        author: "Mock Author",
-        artist: "Mock Artist",
-        released: "January 1, 2023",
-        chapters: Array.from({ length: 10 }, (_, i) => ({
-          number: i + 1,
-          title: `Chapter ${i + 1}`,
-          date: `${10 - i} days ago`,
-        })),
-      }
+      throw error
     }
   },
 
@@ -418,10 +456,6 @@ export const comicService = {
       validateParam(id, "comicId")
     } catch (error) {
       console.error("Invalid comic ID for chapters:", error)
-      if (USE_MOCK_API) {
-        await delay(300)
-        return []
-      }
       throw error
     }
 
@@ -448,13 +482,7 @@ export const comicService = {
       return handleResponse(response)
     } catch (error) {
       console.error("Error fetching comic chapters:", error)
-      console.warn("Falling back to mock data for comic chapters")
-
-      return Array.from({ length: 10 }, (_, i) => ({
-        number: i + 1,
-        title: `Chapter ${i + 1}`,
-        date: `${10 - i} days ago`,
-      }))
+      throw error
     }
   },
 
@@ -484,17 +512,6 @@ export const comicService = {
       chapter = chapterNum
     } catch (error) {
       console.error("Invalid parameters for chapter:", error)
-      if (USE_MOCK_API) {
-        await delay(500)
-        return {
-          images: Array.from(
-            { length: 1 },
-            () => `/placeholder.svg?height=1200&width=800&text=Error: Invalid Parameters`,
-          ),
-          title: "Error: Invalid Parameters",
-          number: 0,
-        }
-      }
       throw error
     }
 
@@ -525,24 +542,25 @@ export const comicService = {
       return handleResponse(response)
     } catch (error) {
       console.error("Error fetching chapter details:", error)
-      console.warn("Falling back to mock data for chapter details")
-
-      const chapterNum = typeof chapter === "string" ? Number.parseInt(chapter, 10) : chapter
-      return {
-        images: Array.from({ length: 10 }, (_, i) => `/placeholder.svg?height=1200&width=800&text=Page ${i + 1}`),
-        title: `Chapter ${chapter}`,
-        number: typeof chapter === "string" ? Number.parseInt(chapter, 10) || 0 : chapter,
-        id: `chapter-${chapterNum}`, // Use id instead of chapterId to match API response
-      }
+      throw error
     }
   },
 
   // Get all genres
   async getGenres(): Promise<string[]> {
+    const cacheKey = "genres"
+
+    // Check cache first
+    const cachedData = getCachedData<string[]>(cacheKey)
+    if (cachedData) {
+      return cachedData
+    }
+
     if (USE_MOCK_API) {
       await delay(200)
       logApiCall("GET", "MOCK /genres")
 
+      setCachedData(cacheKey, mockGenres, CACHE_TTL.GENRES)
       return mockGenres
     }
 
@@ -555,12 +573,12 @@ export const comicService = {
         cache: process.env.NODE_ENV === "development" ? "no-store" : "default",
       })
 
-      return handleResponse(response)
+      const result = await handleResponse<string[]>(response)
+      setCachedData(cacheKey, result, CACHE_TTL.GENRES)
+      return result
     } catch (error) {
       console.error("Error fetching genres:", error)
-      console.warn("Falling back to mock data for genres")
-
-      return mockGenres
+      throw error
     }
   },
 
@@ -592,15 +610,7 @@ export const comicService = {
       return handleResponse(response)
     } catch (error) {
       console.error("Error searching comics:", error)
-      console.warn("Falling back to mock data for comic search")
-
-      // Simple search in mock data
-      const lowerQuery = query.toLowerCase()
-      return mockComics.filter(
-        (comic) =>
-          comic.title.toLowerCase().includes(lowerQuery) ||
-          comic.genres.some((g) => g.toLowerCase().includes(lowerQuery)),
-      )
+      throw error
     }
   },
 }
@@ -621,12 +631,23 @@ export const authService = {
         localStorage.setItem("token", token)
       }
 
+      const mockUser: User = {
+        id: "mock-user-1",
+        username: email.split("@")[0],
+        email,
+        joinDate: "January 15, 2024",
+        avatar: "/placeholder.svg?height=100&width=100",
+        readingStats: {
+          totalRead: 42,
+          currentlyReading: 8,
+          completedSeries: 12,
+          totalChaptersRead: 1247,
+        },
+      }
+
       return {
         token,
-        user: {
-          ...mockUser,
-          email,
-        },
+        user: mockUser,
       }
     }
 
@@ -763,6 +784,20 @@ export const authService = {
         throw new Error("No authentication token found")
       }
 
+      const mockUser: User = {
+        id: "mock-user-1",
+        username: "testuser",
+        email: "test@example.com",
+        joinDate: "January 15, 2024",
+        avatar: "/placeholder.svg?height=100&width=100",
+        readingStats: {
+          totalRead: 42,
+          currentlyReading: 8,
+          completedSeries: 12,
+          totalChaptersRead: 1247,
+        },
+      }
+
       return mockUser
     }
 
@@ -824,7 +859,10 @@ export const userService = {
     if (USE_MOCK_API) {
       await delay(500)
       logApiCall("GET", "MOCK /user/bookmarks")
-      return mockBookmarks
+
+      // Return empty array for mock API to force real API usage
+      console.log("[API] Mock API - returning empty bookmarks to force real API usage")
+      return []
     }
 
     try {
@@ -836,11 +874,12 @@ export const userService = {
         cache: "no-store", // Always fetch fresh bookmark data
       })
 
-      return handleResponse(response)
+      const result = await handleResponse<BookmarkedComic[]>(response)
+      console.log("[API] Real bookmarks data:", result)
+      return result
     } catch (error) {
       console.error("Get bookmarks error:", error)
-      console.warn("Falling back to mock data for bookmarks")
-      return mockBookmarks
+      throw error // Don't fall back to mock data
     }
   },
 
@@ -864,9 +903,6 @@ export const userService = {
         lastReadChapter: 1,
         isNew: true,
       }
-
-      // Add to mock bookmarks
-      mockBookmarks.push(newBookmark)
 
       return newBookmark
     }
@@ -893,13 +929,6 @@ export const userService = {
     if (USE_MOCK_API) {
       await delay(300)
       logApiCall("DELETE", `MOCK /user/bookmarks/${comicId}`)
-
-      // Remove from mock bookmarks
-      const index = mockBookmarks.findIndex((b) => b.id === comicId)
-      if (index !== -1) {
-        mockBookmarks.splice(index, 1)
-      }
-
       return
     }
 
@@ -925,16 +954,9 @@ export const userService = {
       await delay(500)
       logApiCall("GET", "MOCK /user/ratings")
 
-      // Log the mock ratings for debugging
-      console.log("[API] Using mock ratings:", mockRatings)
-
-      // Make sure each rating has both id and comicId for compatibility
-      const enhancedRatings = mockRatings.map((rating) => ({
-        ...rating,
-        comicId: rating.comicId || rating.id, // Ensure comicId exists
-      }))
-
-      return enhancedRatings
+      // Return empty array for mock API to force real API usage
+      console.log("[API] Mock API - returning empty ratings to force real API usage")
+      return []
     }
 
     try {
@@ -947,27 +969,11 @@ export const userService = {
       })
 
       const data = await handleResponse<RatedComic[]>(response)
-      console.log("[API] Received ratings data:", data)
-
-      // Ensure each rating has both id and comicId for compatibility
-      const enhancedData = data.map((rating) => ({
-        ...rating,
-        comicId: rating.comicId || rating.id, // Ensure comicId exists
-        id: rating.id || rating.comicId, // Ensure id exists
-      }))
-
-      return enhancedData
+      console.log("[API] Real ratings data:", data)
+      return data
     } catch (error) {
       console.error("Get ratings error:", error)
-      console.warn("Falling back to mock data for ratings")
-
-      // Make sure each rating has both id and comicId for compatibility
-      const enhancedRatings = mockRatings.map((rating) => ({
-        ...rating,
-        comicId: rating.comicId || rating.id, // Ensure comicId exists
-      }))
-
-      return enhancedRatings
+      throw error // Don't fall back to mock data
     }
   },
 
@@ -981,9 +987,6 @@ export const userService = {
       const comic = mockComics.find((c) => c.id === comicId)
       if (!comic) throw new Error("Comic not found")
 
-      // Check if comic is already rated
-      const existingRatingIndex = mockRatings.findIndex((r) => r.id === comicId || r.comicId === comicId)
-
       const ratedComic: RatedComic = {
         ...comic,
         id: comicId,
@@ -991,16 +994,6 @@ export const userService = {
         rating,
         comment, // Store as comment
         dateRated: new Date().toISOString(),
-      }
-
-      if (existingRatingIndex !== -1) {
-        // Update existing rating
-        mockRatings[existingRatingIndex] = ratedComic
-        console.log("[API] Updated rating:", ratedComic)
-      } else {
-        // Add new rating
-        mockRatings.push(ratedComic)
-        console.log("[API] Added new rating:", ratedComic)
       }
 
       return ratedComic
@@ -1032,13 +1025,6 @@ export const userService = {
     if (USE_MOCK_API) {
       await delay(300)
       logApiCall("DELETE", `MOCK /user/ratings/${comicId}`)
-
-      // Remove from mock ratings
-      const index = mockRatings.findIndex((r) => r.id === comicId)
-      if (index !== -1) {
-        mockRatings.splice(index, 1)
-      }
-
       return
     }
 
@@ -1063,7 +1049,10 @@ export const userService = {
     if (USE_MOCK_API) {
       await delay(500)
       logApiCall("GET", "MOCK /user/history")
-      return mockReadingHistory
+
+      // Return empty array for mock API to force real API usage
+      console.log("[API] Mock API - returning empty reading history to force real API usage")
+      return []
     }
 
     try {
@@ -1075,11 +1064,12 @@ export const userService = {
         cache: "no-store", // Always fetch fresh history data
       })
 
-      return handleResponse(response)
+      const result = await handleResponse<ReadingHistoryItem[]>(response)
+      console.log("[API] Real reading history data:", result)
+      return result
     } catch (error) {
       console.error("Get reading history error:", error)
-      console.warn("Falling back to mock data for reading history")
-      return mockReadingHistory
+      throw error // Don't fall back to mock data
     }
   },
 
@@ -1107,22 +1097,6 @@ export const userService = {
         chapterNumber,
         readDate: new Date().toISOString(),
         lastReadAt: new Date().toISOString(), // Add lastReadAt field
-      }
-
-      // Add to mock history at the beginning (most recent first)
-      mockReadingHistory.unshift(historyItem)
-
-      // Update bookmark's lastReadChapter if it exists
-      const bookmarkIndex = mockBookmarks.findIndex((b) => b.id === comicId)
-      if (bookmarkIndex !== -1) {
-        mockBookmarks[bookmarkIndex].lastReadChapter = chapterNumber
-      } else {
-        // If not bookmarked, add it to bookmarks
-        mockBookmarks.push({
-          ...comic,
-          lastReadChapter: chapterNumber,
-          dateAdded: new Date().toISOString(),
-        })
       }
 
       return historyItem
@@ -1154,6 +1128,21 @@ export const userService = {
     if (USE_MOCK_API) {
       await delay(500)
       logApiCall("GET", "MOCK /user/profile")
+
+      const mockUser: User = {
+        id: "mock-user-1",
+        username: "testuser",
+        email: "test@example.com",
+        joinDate: "January 15, 2024",
+        avatar: "/placeholder.svg?height=100&width=100",
+        readingStats: {
+          totalRead: 42,
+          currentlyReading: 8,
+          completedSeries: 12,
+          totalChaptersRead: 1247,
+        },
+      }
+
       return mockUser
     }
 
@@ -1169,8 +1158,7 @@ export const userService = {
       return handleResponse(response)
     } catch (error) {
       console.error("Get profile error:", error)
-      console.warn("Falling back to mock data for user profile")
-      return mockUser
+      throw error
     }
   },
 
@@ -1179,6 +1167,20 @@ export const userService = {
     if (USE_MOCK_API) {
       await delay(800)
       logApiCall("PUT", "MOCK /user/profile", data)
+
+      const mockUser: User = {
+        id: "mock-user-1",
+        username: "testuser",
+        email: "test@example.com",
+        joinDate: "January 15, 2024",
+        avatar: "/placeholder.svg?height=100&width=100",
+        readingStats: {
+          totalRead: 42,
+          currentlyReading: 8,
+          completedSeries: 12,
+          totalChaptersRead: 1247,
+        },
+      }
 
       return {
         ...mockUser,

@@ -1,38 +1,28 @@
-"use client";
-
-import { useState, useEffect } from "react";
-import Link from "next/link";
-import { comicService } from "@/lib/api";
-import { Card, CardContent } from "@/components/ui/card";
-import { Skeleton } from "@/components/ui/skeleton";
+"use client"
+import Link from "next/link"
+import { useApi } from "@/hooks/use-api"
+import { comicService } from "@/lib/api"
+import { Card, CardContent } from "@/components/ui/card"
+import { Skeleton } from "@/components/ui/skeleton"
+import { ErrorFallback } from "@/components/error-fallback"
 
 export default function GenresPage() {
-  const [genres, setGenres] = useState<string[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    const fetchGenres = async () => {
-      try {
-        const genreList = await comicService.getGenres();
-        setGenres(genreList);
-        setError(null);
-      } catch (err) {
-        console.error("Error fetching genres:", err);
-        setError("Failed to load genres. Please try again later.");
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    fetchGenres();
-  }, []);
+  const {
+    data: genres,
+    loading,
+    error,
+    retry,
+  } = useApi(
+    () => comicService.getGenres(),
+    [], // No dependencies - only fetch once
+    { retryLimit: 2, retryDelay: 2000 },
+  )
 
   return (
     <main className="container mx-auto px-4 py-8">
       <h1 className="text-3xl font-bold mb-6">Browse by Genre</h1>
 
-      {isLoading ? (
+      {loading ? (
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
           {Array(15)
             .fill(0)
@@ -41,10 +31,8 @@ export default function GenresPage() {
             ))}
         </div>
       ) : error ? (
-        <div className="text-center py-12">
-          <p className="text-red-500">{error}</p>
-        </div>
-      ) : (
+        <ErrorFallback error={error} onRetry={retry} title="Failed to load genres" />
+      ) : genres && genres.length > 0 ? (
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
           {genres.map((genre) => (
             <Link key={genre} href={`/genres/${genre.toLowerCase()}`}>
@@ -56,7 +44,11 @@ export default function GenresPage() {
             </Link>
           ))}
         </div>
+      ) : (
+        <div className="text-center py-12">
+          <p className="text-muted-foreground">No genres available at the moment.</p>
+        </div>
       )}
     </main>
-  );
+  )
 }
