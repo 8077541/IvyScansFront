@@ -143,7 +143,6 @@ async function handleResponse<T>(response: Response): Promise<T> {
   try {
     return await response.json()
   } catch (e) {
-    console.error("Error parsing JSON response:", e)
     throw new Error("Invalid JSON response from server")
   }
 }
@@ -171,7 +170,6 @@ function logApiCall(method: string, url: string, data?: any) {
 // Helper function to validate parameters before constructing URLs
 function validateParam(param: any, paramName: string): string {
   if (param === undefined || param === null) {
-    console.error(`Invalid parameter: ${paramName} is ${param}`)
     throw new Error(`Invalid parameter: ${paramName} is required but was ${param}`)
   }
   return String(param)
@@ -186,7 +184,6 @@ function constructApiUrl(endpoint: string): string {
 
   // Validate base URL
   if (!isValidUrl(API_BASE_URL)) {
-    console.error("Invalid API_BASE_URL:", API_BASE_URL)
     throw new Error(`Invalid API base URL: ${API_BASE_URL}`)
   }
 
@@ -195,7 +192,6 @@ function constructApiUrl(endpoint: string): string {
 
   // Validate constructed URL
   if (!isValidUrl(fullUrl)) {
-    console.error("Invalid constructed URL:", fullUrl)
     throw new Error(`Invalid API URL: ${fullUrl}`)
   }
 

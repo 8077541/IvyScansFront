@@ -18,10 +18,7 @@ import type { ReadingHistoryItem, User } from "@/types"
 
 export default function AccountPage() {
   const [user, setUser] = useState<User | null>(null)
-  const [username, setUsername] = useState("")
-  const [email, setEmail] = useState("")
   const [isLoading, setIsLoading] = useState(true)
-  const [isSaving, setIsSaving] = useState(false)
   const [recentHistory, setRecentHistory] = useState<ReadingHistoryItem[]>([])
   const [historyLoading, setHistoryLoading] = useState(true)
   const [isAuthenticated, setIsAuthenticated] = useState(false)
@@ -38,13 +35,9 @@ export default function AccountPage() {
             try {
               // Get current user from API
               const userData = await authService.getCurrentUser()
-              console.log("[Account] User data from API:", userData)
               setUser(userData)
-              setUsername(userData.username)
-              setEmail(userData.email)
               setIsAuthenticated(true)
             } catch (error) {
-              console.error("[Account] Auth error:", error)
               // Clear invalid token
               localStorage.removeItem("token")
               document.cookie = "token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT"
@@ -59,7 +52,6 @@ export default function AccountPage() {
           }
         }
       } catch (error) {
-        console.error("[Account] Authentication check failed:", error)
         setError("Failed to load user data")
         setIsAuthenticated(false)
         if (typeof window !== "undefined") {
@@ -81,9 +73,7 @@ export default function AccountPage() {
 
       setHistoryLoading(true)
       try {
-        console.log("[Account] Fetching reading history from API...")
         const history = await userService.getReadingHistory()
-        console.log("[Account] Reading history from API:", history)
 
         // Get the 5 most recent items and ensure they have proper image URLs
         const processedHistory = history.slice(0, 5).map((item) => ({
@@ -93,9 +83,7 @@ export default function AccountPage() {
         }))
         setRecentHistory(processedHistory)
       } catch (error) {
-        console.error("[Account] Error fetching reading history:", error)
         setError("Failed to load reading history")
-        // Don't use fallback data - show the error state instead
         setRecentHistory([])
       } finally {
         setHistoryLoading(false)
@@ -104,28 +92,6 @@ export default function AccountPage() {
 
     fetchRecentHistory()
   }, [isAuthenticated, authChecked])
-
-  const handleSaveChanges = async () => {
-    if (!isAuthenticated || !user) return
-
-    setIsSaving(true)
-    setError(null)
-    try {
-      console.log("[Account] Updating user profile...")
-      // Use the actual API to update user profile
-      const updatedUser = await userService.updateProfile({
-        username,
-        email,
-      })
-      console.log("[Account] Profile updated:", updatedUser)
-      setUser(updatedUser)
-    } catch (error) {
-      console.error("[Account] Error saving changes:", error)
-      setError("Failed to save changes")
-    } finally {
-      setIsSaving(false)
-    }
-  }
 
   // Show loading while checking authentication
   if (!authChecked || isLoading) {
@@ -212,7 +178,7 @@ export default function AccountPage() {
         <Card>
           <CardHeader className="pb-4">
             <CardTitle>Profile Information</CardTitle>
-            <CardDescription>Update your profile details and public information.</CardDescription>
+            <CardDescription>View your profile details and account information.</CardDescription>
           </CardHeader>
           <CardContent className="grid gap-6">
             <div className="flex flex-col sm:flex-row gap-6 items-start sm:items-center">
@@ -224,35 +190,19 @@ export default function AccountPage() {
 
             <div className="grid gap-3">
               <div className="grid gap-2">
-                <Label htmlFor="username">Username</Label>
-                <Input id="username" value={username} onChange={(e) => setUsername(e.target.value)} />
+                <Label>Username</Label>
+                <Input value={user.username} disabled className="bg-muted" />
               </div>
               <div className="grid gap-2">
-                <Label htmlFor="email">Email</Label>
-                <Input id="email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} />
+                <Label>Email</Label>
+                <Input value={user.email} disabled className="bg-muted" />
               </div>
               <div className="grid gap-2">
                 <Label>Member Since</Label>
-                <Input value={formatDate(user.joinDate)} disabled />
+                <Input value={formatDate(user.joinDate)} disabled className="bg-muted" />
               </div>
             </div>
           </CardContent>
-          <CardFooter>
-            <Button
-              className="bg-green-400 hover:bg-green-500 glow-green"
-              onClick={handleSaveChanges}
-              disabled={isSaving}
-            >
-              {isSaving ? (
-                <div className="flex items-center">
-                  <div className="h-4 w-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2"></div>
-                  Saving...
-                </div>
-              ) : (
-                "Save Changes"
-              )}
-            </Button>
-          </CardFooter>
         </Card>
 
         {/* Reading Streak Card */}
